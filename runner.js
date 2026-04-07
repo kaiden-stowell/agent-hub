@@ -19,6 +19,70 @@ function onChatDone(cb)          { chatDoneListeners.push(cb); }
 function emit(event, data)       { if (broadcast) broadcast(event, data); }
 function setCOOHelpers(ctxFn)    { getCOOContextPrompt = ctxFn; }
 
+// ── Integration context ─────────────────────────────────────────────────────
+// Reads .env and builds a context block telling agents what integrations are available
+function buildIntegrationsContext() {
+  const envPath = path.join(__dirname, '.env');
+  let envContent = '';
+  try { envContent = fs.readFileSync(envPath, 'utf8'); } catch { return ''; }
+
+  const getKey = name => (envContent.match(new RegExp('^' + name + '=(.+)$', 'm')) || [])[1]?.trim();
+
+  const integrations = [];
+
+  const composioKey = getKey('COMPOSIO_API_KEY');
+  if (composioKey) {
+    integrations.push({
+      name: 'Composio',
+      desc: 'Access 500+ apps (Gmail, Slack, GitHub, Sheets, Calendar, etc.)',
+      usage: `Use the Composio API to interact with connected apps.\nAPI Key: ${composioKey}\nBase URL: https://backend.composio.dev/api/v2\nDocs: https://docs.composio.dev`,
+    });
+  }
+
+  const zapierKey = getKey('ZAPIER_API_KEY');
+  if (zapierKey) {
+    integrations.push({
+      name: 'Zapier',
+      desc: 'Trigger automated workflows across 6,000+ apps',
+      usage: `Use the Zapier NLA API to trigger actions.\nAPI Key: ${zapierKey}\nBase URL: https://nla.zapier.com/api/v1\nList actions: GET /dynamic/exposed/ with header "X-API-Key: ${zapierKey}"\nRun action: POST /dynamic/exposed/<action_id>/execute/ with instructions in the body`,
+    });
+  }
+
+  const makeKey = getKey('MAKE_API_KEY');
+  if (makeKey) {
+    integrations.push({
+      name: 'Make',
+      desc: 'Trigger Make scenarios and automations',
+      usage: `Use the Make API to trigger scenarios.\nAPI Token: ${makeKey}\nBase URL: https://us1.make.com/api/v2\nAuth header: "Authorization: Token ${makeKey}"`,
+    });
+  }
+
+  // Custom apps (Lovable, Base44, etc.)
+  for (const app of ['LOVABLE', 'BASE44']) {
+    const webhook = getKey(app + '_WEBHOOK');
+    const apiKey = getKey(app + '_API_KEY');
+    if (webhook || apiKey) {
+      const name = app.charAt(0) + app.slice(1).toLowerCase();
+      const parts = [];
+      if (webhook) parts.push(`Webhook URL: ${webhook}\nSend POST requests to this URL to trigger actions.`);
+      if (apiKey) parts.push(`API Key: ${apiKey}\nInclude as "Authorization: Bearer ${apiKey}" header.`);
+      integrations.push({
+        name,
+        desc: `Custom ${name} app integration`,
+        usage: parts.join('\n'),
+      });
+    }
+  }
+
+  if (!integrations.length) return '';
+
+  const lines = integrations.map(i =>
+    `## ${i.name}\n${i.desc}\n\n${i.usage}`
+  ).join('\n\n---\n\n');
+
+  return `\n\n---\n# Connected Integrations\nYou have access to the following integrations. Use them via Bash (curl) when relevant to the task.\n\n${lines}\n`;
+}
+
 // ── Find claude binary ───────────────────────────────────────────────────────
 function findClaude() {
   if (process.env.CLAUDE_BIN && fs.existsSync(process.env.CLAUDE_BIN))
@@ -116,6 +180,8 @@ function startRun(agentId, prompt, opts = {}) {
     : agent;
   const skillsCtx = skills.buildSkillsContext(runAgent);
   if (skillsCtx) console.log(`[runner] Injecting skills context (${skillsCtx.length} chars) for agent ${agent.name}`);
+  const integrationsCtx = buildIntegrationsContext();
+  if (integrationsCtx) console.log(`[runner] Injecting integrations context for agent ${agent.name}`);
 
   // When skills are attached, add a directive to follow them
   const skillDirective = skillsCtx
@@ -124,13 +190,13 @@ function startRun(agentId, prompt, opts = {}) {
 
   if (agent.protected && getCOOContextPrompt && !skillsCtx) {
     // COO without skills — normal management mode
-    fullPrompt = agent.prompt + getCOOContextPrompt(agent.board_id) + '\n\n---\n\n' + prompt;
+    fullPrompt = agent.prompt + integrationsCtx + getCOOContextPrompt(agent.board_id) + '\n\n---\n\n' + prompt;
   } else if (agent.protected && skillsCtx) {
     // COO with skills — skip management context, focus on skill execution
-    fullPrompt = `You are ${agent.name}. Execute the following task using the skills provided.` + skillsCtx + skillDirective + prompt;
+    fullPrompt = `You are ${agent.name}. Execute the following task using the skills provided.` + skillsCtx + integrationsCtx + skillDirective + prompt;
   } else {
     const systemCtx = [agent.prompt, agent.description ? `(${agent.description})` : ''].filter(Boolean).join('\n');
-    fullPrompt = (systemCtx ? systemCtx : '') + skillsCtx + skillDirective + prompt;
+    fullPrompt = (systemCtx ? systemCtx : '') + skillsCtx + integrationsCtx + skillDirective + prompt;
   }
 
   const proc = spawn(CLAUDE_BIN, claudeArgs(agent.model, fullPrompt), {
@@ -232,16 +298,17 @@ function sendChatMessage(agentId, userText) {
   const history = (chat?.messages || []).filter(m => m.id !== assistantId);
 
   const skillsCtxChat = skills.buildSkillsContext(agent);
+  const integrationsCtxChat = buildIntegrationsContext();
   let systemLines;
   if (agent.protected && getCOOContextPrompt) {
-    systemLines = agent.prompt + skillsCtxChat + getCOOContextPrompt(agent.board_id) +
+    systemLines = agent.prompt + skillsCtxChat + integrationsCtxChat + getCOOContextPrompt(agent.board_id) +
       '\nYou are in a direct chat. Be decisive and action-oriented. Use your Bash tools to take real actions when asked.';
   } else {
     systemLines = [
       agent.prompt || `You are ${agent.name}, a helpful AI agent.`,
       agent.description ? `Context: ${agent.description}` : '',
       'You are in a direct chat conversation. Be clear and concise.',
-    ].filter(Boolean).join('\n') + skillsCtxChat;
+    ].filter(Boolean).join('\n') + skillsCtxChat + integrationsCtxChat;
   }
 
   let promptText = systemLines + '\n\n';
