@@ -298,6 +298,84 @@
           <div class="int-info"><h3>iMessage</h3><p>Send <code>@AgentName task</code> from any iMessage to talk to any agent</p></div>
           <span><span class="badge badge-on">Active</span></span>
         </div>
+        <!-- Composio -->
+        <div class="integration-card" id="composio-card">
+          <div class="int-icon" style="background:linear-gradient(135deg,#6366f1,#a855f7)">
+            <svg viewBox="0 0 24 24" fill="white" width="26" height="26"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          </div>
+          <div class="int-info">
+            <h3>Composio</h3>
+            <p id="composio-status-text">Connect 500+ apps — Gmail, Slack, GitHub, Google Sheets, and more</p>
+          </div>
+          <span id="composio-badge"><span class="badge badge-off">Off</span></span>
+        </div>
+        <div id="composio-connect-form" class="telegram-connect-form">
+          <div class="tg-steps">
+            <div class="tg-step">
+              <span class="tg-step-num">1</span>
+              <span>Get your API key from <strong><a href="https://app.composio.dev/settings" target="_blank" style="color:var(--accent-h)">app.composio.dev/settings</a></strong></span>
+            </div>
+            <div class="tg-step">
+              <span class="tg-step-num">2</span>
+              <span>Paste it below and hit <strong>Connect</strong></span>
+            </div>
+          </div>
+          <div class="tg-input-row">
+            <input id="composio-key-input" type="password" placeholder="Paste your Composio API key…" autocomplete="off" />
+            <button class="btn btn-primary" onclick="connectComposio()" id="composio-connect-btn">Connect</button>
+          </div>
+          <div id="composio-error" class="tg-error hidden"></div>
+        </div>
+        <div id="composio-connected-info" class="telegram-connected-info hidden">
+          <div class="tg-bot-info">
+            <span class="tg-bot-icon">⚡</span>
+            <div>
+              <div class="tg-bot-name">Composio Connected</div>
+              <div class="tg-bot-hint">Your agents can now use connected apps via Composio tools</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <a href="https://app.composio.dev/apps" target="_blank" class="btn btn-ghost btn-sm">Manage Apps</a>
+            <button class="btn btn-ghost btn-sm" onclick="disconnectComposio()">Disconnect</button>
+          </div>
+        </div>
+
+        <!-- Slack -->
+        <div class="integration-card" id="slack-card">
+          <div class="int-icon" style="background:#4A154B">
+            <svg viewBox="0 0 24 24" fill="white" width="26" height="26"><path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zm1.271 0a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zm0 1.271a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zm10.122 2.521a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zm-1.268 0a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zm-2.523 10.122a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zm0-1.268a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/></svg>
+          </div>
+          <div class="int-info"><h3>Slack</h3><p>Connect via Composio to send messages and get notifications</p></div>
+          <span><span class="badge badge-off">Via Composio</span></span>
+        </div>
+
+        <!-- Gmail -->
+        <div class="integration-card" id="gmail-card">
+          <div class="int-icon" style="background:#EA4335">
+            <svg viewBox="0 0 24 24" fill="white" width="26" height="26"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+          </div>
+          <div class="int-info"><h3>Gmail</h3><p>Read and send emails through your agents</p></div>
+          <span><span class="badge badge-off">Via Composio</span></span>
+        </div>
+
+        <!-- GitHub -->
+        <div class="integration-card" id="github-card">
+          <div class="int-icon" style="background:#24292e">
+            <svg viewBox="0 0 24 24" fill="white" width="26" height="26"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          </div>
+          <div class="int-info"><h3>GitHub</h3><p>Create repos, manage issues, commit code</p></div>
+          <span><span class="badge badge-off">Via Composio</span></span>
+        </div>
+
+        <!-- Google Sheets -->
+        <div class="integration-card" id="sheets-card">
+          <div class="int-icon" style="background:#0F9D58">
+            <svg viewBox="0 0 24 24" fill="white" width="26" height="26"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-8 14H7v-2h4v2zm0-4H7v-2h4v2zm0-4H7V7h4v2zm6 8h-4v-2h4v2zm0-4h-4v-2h4v2zm0-4h-4V7h4v2z"/></svg>
+          </div>
+          <div class="int-info"><h3>Google Sheets</h3><p>Read and write spreadsheet data</p></div>
+          <span><span class="badge badge-off">Via Composio</span></span>
+        </div>
+
         <div class="imessage-feed-panel" id="imessage-feed-panel">
           <div class="imsg-feed-header">
             <span class="imsg-feed-title">Recent iMessage Activity</span>

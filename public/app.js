@@ -1398,9 +1398,51 @@ async function submitActivation() {
 async function loadIntegrations() {
   const s = await api('/integrations/status');
   renderTelegramState(s.telegram, s.telegramUsername, s.telegramName);
+  renderComposioState(s.composio);
   const feedData = await api('/imessage/feed');
   const feedEl = document.getElementById('imsg-feed');
   if (feedEl) { feedEl.innerHTML = ''; feedData.forEach(appendImessageFeedItem); }
+}
+
+function renderComposioState(connected) {
+  const form = document.getElementById('composio-connect-form');
+  const info = document.getElementById('composio-connected-info');
+  const badge = document.getElementById('composio-badge');
+  if (connected) {
+    form.classList.add('hidden');
+    info.classList.remove('hidden');
+    badge.innerHTML = '<span class="badge badge-on">Connected</span>';
+    document.getElementById('composio-status-text').textContent = 'Connected — your agents can use Composio tools';
+  } else {
+    form.classList.remove('hidden');
+    info.classList.add('hidden');
+    badge.innerHTML = '<span class="badge badge-off">Off</span>';
+    document.getElementById('composio-status-text').textContent = 'Connect 500+ apps — Gmail, Slack, GitHub, Google Sheets, and more';
+  }
+}
+
+async function connectComposio() {
+  const input = document.getElementById('composio-key-input');
+  const key = input.value.trim();
+  const errEl = document.getElementById('composio-error');
+  if (!key) { errEl.textContent = 'Please paste your API key'; errEl.classList.remove('hidden'); return; }
+  errEl.classList.add('hidden');
+  document.getElementById('composio-connect-btn').disabled = true;
+  try {
+    await api('/integrations/composio', { method: 'POST', body: JSON.stringify({ apiKey: key }) });
+    renderComposioState(true);
+    showToast('Composio connected!', 'success');
+  } catch (e) {
+    errEl.textContent = e.message; errEl.classList.remove('hidden');
+  }
+  document.getElementById('composio-connect-btn').disabled = false;
+}
+
+async function disconnectComposio() {
+  if (!confirm('Disconnect Composio?')) return;
+  await api('/integrations/composio', { method: 'DELETE' });
+  renderComposioState(false);
+  showToast('Composio disconnected', 'info');
 }
 
 // ── Inbox ──────────────────────────────────────────────────────────────────
