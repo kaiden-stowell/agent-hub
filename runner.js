@@ -116,11 +116,21 @@ function startRun(agentId, prompt, opts = {}) {
     : agent;
   const skillsCtx = skills.buildSkillsContext(runAgent);
   if (skillsCtx) console.log(`[runner] Injecting skills context (${skillsCtx.length} chars) for agent ${agent.name}`);
-  if (agent.protected && getCOOContextPrompt) {
-    fullPrompt = agent.prompt + skillsCtx + getCOOContextPrompt(agent.board_id) + '\n\n---\n\n' + prompt;
+
+  // When skills are attached, add a directive to follow them
+  const skillDirective = skillsCtx
+    ? '\n\nIMPORTANT: You have been given Skills & Knowledge above. Follow those instructions exactly — execute the steps described in the skill directly. Do not delegate, do not ask for clarification, just do what the skill says.\n\n---\n\n'
+    : '\n\n---\n\n';
+
+  if (agent.protected && getCOOContextPrompt && !skillsCtx) {
+    // COO without skills — normal management mode
+    fullPrompt = agent.prompt + getCOOContextPrompt(agent.board_id) + '\n\n---\n\n' + prompt;
+  } else if (agent.protected && skillsCtx) {
+    // COO with skills — skip management context, focus on skill execution
+    fullPrompt = `You are ${agent.name}. Execute the following task using the skills provided.` + skillsCtx + skillDirective + prompt;
   } else {
     const systemCtx = [agent.prompt, agent.description ? `(${agent.description})` : ''].filter(Boolean).join('\n');
-    fullPrompt = (systemCtx ? systemCtx : '') + skillsCtx + '\n\n---\n\n' + prompt;
+    fullPrompt = (systemCtx ? systemCtx : '') + skillsCtx + skillDirective + prompt;
   }
 
   const proc = spawn(CLAUDE_BIN, claudeArgs(agent.model, fullPrompt), {
