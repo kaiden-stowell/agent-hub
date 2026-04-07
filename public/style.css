@@ -83,7 +83,11 @@ html, body { height: 100%; background: var(--bg); color: var(--text);
 
 /* ── SMALL MODAL ── */
 .modal-sm { max-width: 380px; }
-.nav-links { display: flex; flex-direction: column; gap: 2px; padding: 0 12px; flex: 1; }
+.nav-links { display: flex; flex-direction: column; gap: 2px; padding: 0 12px; flex: 1; overflow-y: auto; }
+.nav-section {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--text-dim); padding: 14px 14px 4px; margin-top: 4px;
+}
 .nav-link {
   display: flex; align-items: center; gap: 10px;
   padding: 9px 14px; border-radius: var(--r-sm);
