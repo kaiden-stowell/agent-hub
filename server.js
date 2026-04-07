@@ -637,28 +637,25 @@ app.post('/api/integrations/:name', (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.delete('/api/integrations/:name', (req, res) => {
-  const { name } = req.params;
-  if (['telegram', 'composio'].includes(name)) {
-    // Fall through to dedicated handlers below
-  }
-  const envKey = name.toUpperCase() + '_API_KEY';
-  const envPath = path.join(__dirname, '.env');
-  try {
-    let content = require('fs').readFileSync(envPath, 'utf8');
-    content = content.replace(new RegExp('^' + envKey + '=.*', 'm'), envKey + '=');
-    require('fs').writeFileSync(envPath, content);
-  } catch {}
-  res.json({ ok: true });
-});
-
 app.delete('/api/integrations/composio', (req, res) => {
   const envPath = path.join(__dirname, '.env');
   try {
     let content = require('fs').readFileSync(envPath, 'utf8');
     content = content.replace(/^COMPOSIO_API_KEY=.*/m, 'COMPOSIO_API_KEY=');
     require('fs').writeFileSync(envPath, content);
-    res.json({ ok: true });
+  } catch {}
+  res.json({ ok: true });
+});
+
+app.delete('/api/integrations/:name', (req, res, next) => {
+  const { name } = req.params;
+  if (name === 'telegram') return next(); // handled by dedicated route below
+  const envKey = name.toUpperCase() + '_API_KEY';
+  const envPath = path.join(__dirname, '.env');
+  try {
+    let content = require('fs').readFileSync(envPath, 'utf8');
+    content = content.replace(new RegExp('^' + envKey + '=.*', 'm'), envKey + '=');
+    require('fs').writeFileSync(envPath, content);
   } catch {}
   res.json({ ok: true });
 });
