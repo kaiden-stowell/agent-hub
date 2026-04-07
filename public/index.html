@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agent Hub</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="apple-touch-icon" href="/icon-192.png" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#6366f1" />
+  <link rel="stylesheet" href="/style.css?v=5" />
+</head>
+<body>
+<div id="app">
+
+  <nav class="sidebar">
+    <div class="brand">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+        <rect x="3" y="4" width="18" height="12" rx="2" stroke="#6366f1" stroke-width="1.5"/>
+        <path d="M7 20h10" stroke="#6366f1" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M9 16v4M15 16v4" stroke="#6366f1" stroke-width="1.5" stroke-linecap="round"/>
+        <circle cx="12" cy="10" r="2" fill="#6366f1" opacity="0.6"/>
+      </svg>
+      Agent Hub
+    </div>
+    <div id="board-switcher" class="board-switcher"></div>
+    <div class="nav-links">
+      <a href="#" class="nav-link active" data-view="dashboard">
+        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h5v5H2V2zm7 0h5v5H9V2zm-7 7h5v5H2V9zm7 0h5v5H9V9z"/></svg>
+        Dashboard
+      </a>
+      <a href="#" class="nav-link" data-view="tasks">
+        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 3h12v2H2V3zm0 4h8v2H2V7zm0 4h6v2H2v-2z"/><path d="M12 9l4 3-4 3v-2H9v-2h3V9z"/></svg>
+        Tasks
+      </a>
+      <a href="#" class="nav-link" data-view="agents">
+        <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.31 2.69-6 6-6s6 2.69 6 6H2z"/></svg>
+        Agents
+      </a>
+      <a href="#" class="nav-link" data-view="office">
+        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M1 1h14v10H1V1zm2 2v6h10V3H3zm0 8v3h2v-3H3zm8 0v3h2v-3h-2z"/></svg>
+        Office
+      </a>
+      <a href="#" class="nav-link" data-view="activity">
+        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M5 3l8 5-8 5V3z"/></svg>
+        Activity
+      </a>
+      <a href="#" class="nav-link" data-view="skills">
+        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h4v4H2V2zm5 0h4v4H7V2zm5 0h2v4h-2V2zM2 7h4v4H2V7zm5 0h4v4H7V7zM2 12h4v4H2v-4zm5 0h4v4H7v-4z"/></svg>
+        Skills
+      </a>
+      <a href="#" class="nav-link" data-view="schedules">
+        <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M8 4v4l3 2" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+        Schedules
+      </a>
+      <a href="#" class="nav-link" data-view="inbox">
+        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h12a1 1 0 011 1v7a1 1 0 01-1 1H9l-1 2-1-2H2a1 1 0 01-1-1V3a1 1 0 011-1z"/></svg>
+        Inbox
+        <span class="inbox-badge hidden" id="inbox-nav-badge"></span>
+      </a>
+      <a href="#" class="nav-link" data-view="integrations">
+        <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="4" cy="4" r="2"/><circle cx="12" cy="4" r="2"/><circle cx="8" cy="12" r="2"/><path d="M4 6v2l4 3M12 6v2l-4 3" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        Integrations
+      </a>
+    </div>
+    <div class="sidebar-footer">
+      <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="status-dot" id="ws-status"></span>
+          <span class="status-label" id="ws-label">Connecting</span>
+        </div>
+        <button class="settings-btn" onclick="openSettings()" title="Settings">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+      </div>
+      <div class="version-label" id="version-label"></div>
+    </div>
+  </nav>
+
+  <main class="content">
+
+    <!-- DASHBOARD -->
+    <section id="view-dashboard" class="view active">
+      <div class="view-header">
+        <h1>Dashboard</h1>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost" onclick="showNewTask()">+ Task</button>
+          <button class="btn btn-primary" onclick="showCreateAgent()">+ Agent</button>
+        </div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-val" id="stat-agents">0</div><div class="stat-label">Agents</div></div>
+        <div class="stat-card"><div class="stat-val accent" id="stat-running">0</div><div class="stat-label">Running</div></div>
+        <div class="stat-card"><div class="stat-val" id="stat-tasks">0</div><div class="stat-label">Tasks</div></div>
+        <div class="stat-card"><div class="stat-val purple" id="stat-crons">0</div><div class="stat-label">Active Schedules</div></div>
+      </div>
+      <div class="coo-banner" id="coo-banner" onclick="openCOOChat()" style="cursor:pointer">
+        <div class="coo-avatar">C</div>
+        <div class="coo-banner-text">
+          <strong>COO — Chief Operating Officer</strong>
+          <span>Chat with the COO to hire agents, assign tasks, and automate workflows</span>
+        </div>
+        <button class="btn btn-primary">Open Chat →</button>
+      </div>
+      <div class="two-col">
+        <div>
+          <div class="section-header"><h2>Active Runs</h2></div>
+          <div id="dash-active-runs" class="run-list"><div class="empty-hint">No active runs</div></div>
+        </div>
+        <div>
+          <div class="section-header"><h2>In-Progress Tasks</h2></div>
+          <div id="dash-active-tasks" class="task-mini-list"><div class="empty-hint">No tasks in progress</div></div>
+        </div>
+      </div>
+      <div class="section-header"><h2>Team</h2></div>
+      <div id="dash-agents" class="agent-grid"></div>
+    </section>
+
+    <!-- TASKS -->
+    <section id="view-tasks" class="view">
+      <div class="view-header">
+        <h1>Tasks</h1>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost" id="archive-toggle-btn" onclick="toggleArchiveView()">📦 Archive</button>
+          <button class="btn btn-primary" onclick="showNewTask()">+ New Task</button>
+        </div>
+      </div>
+      <div class="kanban" id="kanban">
+        <div class="kanban-col">
+          <div class="kanban-col-header"><span class="col-dot dot-todo"></span>To Do<span class="col-count" id="count-todo">0</span></div>
+          <div class="kanban-cards" id="cards-todo"></div>
+        </div>
+        <div class="kanban-col">
+          <div class="kanban-col-header"><span class="col-dot dot-inprogress"></span>In Progress<span class="col-count" id="count-inprogress">0</span></div>
+          <div class="kanban-cards" id="cards-inprogress"></div>
+        </div>
+        <div class="kanban-col">
+          <div class="kanban-col-header"><span class="col-dot dot-done"></span>Done<span class="col-count" id="count-done">0</span></div>
+          <div class="kanban-cards" id="cards-done"></div>
+        </div>
+      </div>
+      <div id="archive-panel" style="display:none">
+        <div class="archive-header">
+          <h2>📦 Archived Tasks</h2>
+          <p style="font-size:13px;color:var(--text-muted);margin-top:4px">Completed tasks that have been moved to the archive.</p>
+        </div>
+        <div id="archive-list" class="archive-list"></div>
+      </div>
+    </section>
+
+    <!-- AGENTS -->
+    <section id="view-agents" class="view">
+      <div class="view-header">
+        <h1>Agents</h1>
+        <button class="btn btn-primary" onclick="showCreateAgent()">+ New Agent</button>
+      </div>
+      <div id="agents-list" class="agent-grid"></div>
+    </section>
+
+    <!-- OFFICE -->
+    <section id="view-office" class="view">
+      <div class="view-header">
+        <h1>🏢 Office</h1>
+        <p class="view-subtitle">See what your agents are up to right now. Click any desk to chat with that agent.</p>
+      </div>
+      <div class="office-grid" id="office-floor"></div>
+    </section>
+
+    <!-- ACTIVITY (formerly Runs) -->
+    <section id="view-activity" class="view">
+      <div class="view-header">
+        <h1>Activity</h1>
+        <div class="filter-row">
+          <select id="run-filter-status" onchange="loadRuns()">
+            <option value="">All activity</option>
+            <option value="running">Currently running</option>
+            <option value="done">Completed</option>
+            <option value="error">Errors</option>
+            <option value="stopped">Stopped</option>
+          </select>
+          <select id="run-filter-agent" onchange="loadRuns()"><option value="">All agents</option></select>
+        </div>
+      </div>
+      <div id="runs-list" class="run-list"></div>
+    </section>
+
+    <!-- SKILLS -->
+    <section id="view-skills" class="view">
+      <div class="view-header">
+        <h1>Skills</h1>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost" onclick="showImportSkill()">↑ Import File</button>
+          <button class="btn btn-primary" onclick="showNewSkill()">+ New Skill</button>
+        </div>
+      </div>
+      <p class="skills-intro">Skills are markdown files injected into an agent's context before every run or chat. Add guides, style rules, API docs, or anything else your agents should know.</p>
+      <div class="skills-layout">
+        <div class="skills-sidebar" id="skills-sidebar"></div>
+        <div class="skills-editor-panel" id="skills-editor-panel">
+          <div class="skills-empty-state">
+            <div style="font-size:48px;margin-bottom:12px">📄</div>
+            <p>Select a skill to view or edit it</p>
+            <p style="font-size:12px;color:var(--text-dim);margin-top:6px">Skills are injected into agents before every run</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SCHEDULES -->
+    <section id="view-schedules" class="view">
+      <div class="view-header">
+        <h1>Schedules</h1>
+        <button class="btn btn-primary" onclick="showNewCron()">+ New Schedule</button>
+      </div>
+      <div id="schedules-list" class="schedules-list"></div>
+    </section>
+
+    <!-- INBOX -->
+    <section id="view-inbox" class="view">
+      <div class="view-header"><h1>Inbox</h1><p class="view-subtitle">iMessage conversations with your agents</p></div>
+      <div class="inbox-layout">
+        <div class="inbox-sidebar" id="inbox-sidebar">
+          <div class="inbox-empty" id="inbox-empty">No messages yet.<br>Send <code>@AgentName hello</code> from iMessage.</div>
+        </div>
+        <div class="inbox-thread" id="inbox-thread">
+          <div class="inbox-thread-placeholder" id="inbox-thread-placeholder">Select a conversation to read messages</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- INTEGRATIONS -->
+    <section id="view-integrations" class="view">
+      <div class="view-header"><h1>Integrations</h1></div>
+      <div class="integrations-grid">
+        <div class="integration-card telegram-card" id="telegram-card">
+          <div class="int-icon" style="background:#2AABEE">
+            <svg viewBox="0 0 24 24" fill="white" width="28" height="28"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.018 9.51c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.88.71z"/></svg>
+          </div>
+          <div class="int-info" id="telegram-info">
+            <h3>Telegram</h3>
+            <p id="telegram-status-text">Paste your bot token below to connect</p>
+          </div>
+          <span id="telegram-badge"><span class="badge badge-off">Off</span></span>
+        </div>
+        <!-- Telegram connect form (shown when disconnected) -->
+        <div id="telegram-connect-form" class="telegram-connect-form">
+          <div class="tg-steps">
+            <div class="tg-step">
+              <span class="tg-step-num">1</span>
+              <span>Open Telegram, search <strong>@BotFather</strong>, send <code>/newbot</code></span>
+            </div>
+            <div class="tg-step">
+              <span class="tg-step-num">2</span>
+              <span>Follow the prompts — copy the token it gives you (looks like <code>1234567:ABC...</code>)</span>
+            </div>
+            <div class="tg-step">
+              <span class="tg-step-num">3</span>
+              <span>Paste it below and hit <strong>Connect</strong></span>
+            </div>
+          </div>
+          <div class="tg-input-row">
+            <input id="tg-token-input" type="password" placeholder="Paste your bot token here…" autocomplete="off" />
+            <button class="btn btn-primary" onclick="connectTelegram()" id="tg-connect-btn">Connect</button>
+          </div>
+          <div id="tg-error" class="tg-error hidden"></div>
+        </div>
+        <!-- Telegram connected state -->
+        <div id="telegram-connected-info" class="telegram-connected-info hidden">
+          <div class="tg-bot-info">
+            <span class="tg-bot-icon">🤖</span>
+            <div>
+              <div class="tg-bot-name" id="tg-bot-name">Bot connected</div>
+              <div class="tg-bot-hint">Send <code>/help</code> to your bot · <code>@AgentName do something</code> to run agents</div>
+            </div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="disconnectTelegram()">Disconnect</button>
+        </div>
+        <div class="integration-card">
+          <div class="int-icon" style="background:#34c759">
+            <svg viewBox="0 0 24 24" fill="white" width="28" height="28"><path d="M20 2H4C2.9 2 2 2.9 2 4v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+          </div>
+          <div class="int-info"><h3>iMessage</h3><p>Send <code>@AgentName task</code> from any iMessage to talk to any agent</p></div>
+          <span><span class="badge badge-on">Active</span></span>
+        </div>
+        <div class="imessage-feed-panel" id="imessage-feed-panel">
+          <div class="imsg-feed-header">
+            <span class="imsg-feed-title">Recent iMessage Activity</span>
+            <span class="imsg-feed-empty" id="imsg-empty">No messages yet — send <code>@AgentName hello</code> from iMessage</span>
+          </div>
+          <div class="imsg-feed" id="imsg-feed"></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ═══════════════════ MODALS ═══════════════════ -->
+
+<!-- BOARD MODAL -->
+<div id="board-modal" class="modal-overlay hidden" onclick="closeOnOverlay(event,'board-modal')">
+  <div class="modal modal-sm" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2 id="board-modal-title">New Board</h2>
+      <button class="modal-close" onclick="document.getElementById('board-modal').classList.add('hidden')">×</button>
+    </div>
+    <form onsubmit="saveBoard(event)">
+      <div class="form-group">
+        <label>Board Name <span class="req">*</span></label>
+        <input id="bf-name" type="text" placeholder="e.g. Acme Corp, My Startup" required />
+      </div>
+      <div class="form-group">
+        <label>Color</label>
+        <div class="color-swatches">
+          <span class="swatch" style="background:#6366f1" onclick="setBoardColor('#6366f1')"></span>
+          <span class="swatch" style="background:#22c55e" onclick="setBoardColor('#22c55e')"></span>
+          <span class="swatch" style="background:#f59e0b" onclick="setBoardColor('#f59e0b')"></span>
+          <span class="swatch" style="background:#ef4444" onclick="setBoardColor('#ef4444')"></span>
+          <span class="swatch" style="background:#3b82f6" onclick="setBoardColor('#3b82f6')"></span>
+          <span class="swatch" style="background:#a855f7" onclick="setBoardColor('#a855f7')"></span>
+          <span class="swatch" style="background:#ec4899" onclick="setBoardColor('#ec4899')"></span>
+          <span class="swatch" style="background:#14b8a6" onclick="setBoardColor('#14b8a6')"></span>
+        </div>
+        <input id="bf-color" type="color" value="#6366f1" style="margin-top:8px;width:48px;height:28px;border:none;background:none;cursor:pointer" />
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="document.getElementById('board-modal').classList.add('hidden')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+      <input type="hidden" id="bf-id" />
+    </form>
+  </div>
+</div>
+
+<!-- AGENT MODAL -->
+<div id="agent-modal" class="modal-overlay hidden" onclick="closeOnOverlay(event,'agent-modal')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2 id="modal-title">New Agent</h2>
+      <button class="modal-close" onclick="closeAgentModal()">×</button>
+    </div>
+    <form id="agent-form" onsubmit="saveAgent(event)">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Name <span class="req">*</span></label>
+          <input id="f-name" type="text" placeholder="e.g. Backend Engineer" required />
+        </div>
+        <div class="form-group">
+          <label>Model</label>
+          <select id="f-model">
+            <option value="claude-sonnet-4-6">Sonnet 4.6 (recommended)</option>
+            <option value="claude-opus-4-6">Opus 4.6 (most capable)</option>
+            <option value="claude-haiku-4-5-20251001">Haiku 4.5 (fastest)</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Role / System Prompt <span class="req">*</span></label>
+        <textarea id="f-prompt" rows="4" placeholder="You are an expert backend engineer specialising in Node.js and PostgreSQL. You write clean, secure, well-tested code..." required></textarea>
+      </div>
+      <div class="form-group">
+        <label>Description <span class="muted">(shown on cards)</span></label>
+        <input id="f-description" type="text" placeholder="Short one-liner of what this agent does" />
+      </div>
+      <div class="form-group">
+        <label>Working Directory</label>
+        <input id="f-workdir" type="text" placeholder="/Users/friday" />
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Telegram Chat ID</label>
+          <input id="f-telegram" type="text" placeholder="123456789" />
+        </div>
+        <div class="form-group">
+          <label>iMessage Handle</label>
+          <input id="f-imessage" type="text" placeholder="+15555551234" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Tags <span class="muted">(comma-separated)</span></label>
+        <input id="f-tags" type="text" placeholder="code, backend, nodejs" />
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="closeAgentModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="save-btn">Create Agent</button>
+      </div>
+      <input type="hidden" id="f-id" />
+    </form>
+  </div>
+</div>
+
+<!-- TASK MODAL -->
+<div id="task-modal" class="modal-overlay hidden" onclick="closeOnOverlay(event,'task-modal')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2 id="task-modal-title">New Task</h2>
+      <button class="modal-close" onclick="closeTaskModal()">×</button>
+    </div>
+    <form id="task-form" onsubmit="saveTask(event)">
+      <div class="form-group">
+        <label>Title <span class="req">*</span></label>
+        <input id="tf-title" type="text" placeholder="e.g. Review the auth module for SQL injection" required />
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea id="tf-description" rows="3" placeholder="More detail about what needs to be done..."></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Assign to Agent</label>
+          <select id="tf-agent"><option value="">Unassigned</option></select>
+        </div>
+        <div class="form-group">
+          <label>Priority</label>
+          <select id="tf-priority">
+            <option value="low">Low</option>
+            <option value="medium" selected>Medium</option>
+            <option value="high">High</option>
+            <option value="urgent">Urgent</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notes <span class="muted">(extra context for the agent)</span></label>
+        <textarea id="tf-notes" rows="2" placeholder="Pay special attention to..."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="closeTaskModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="task-save-btn">Create Task</button>
+      </div>
+      <input type="hidden" id="tf-id" />
+    </form>
+  </div>
+</div>
+
+<!-- SKILL MODAL (create/edit inline) -->
+<div id="skill-modal" class="modal-overlay hidden" onclick="closeOnOverlay(event,'skill-modal')">
+  <div class="modal modal-wide" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2 id="skill-modal-title">New Skill</h2>
+      <button class="modal-close" onclick="closeSkillModal()">×</button>
+    </div>
+    <form id="skill-form" onsubmit="saveSkill(event)">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Name <span class="req">*</span></label>
+          <input id="sk-name" type="text" placeholder="e.g. Python Style Guide" required />
+        </div>
+        <div class="form-group">
+          <label>Folder <span class="muted">(for organisation)</span></label>
+          <input id="sk-folder" type="text" placeholder="e.g. coding, research, security" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <input id="sk-description" type="text" placeholder="One-line summary of what this skill provides" />
+      </div>
+      <div class="form-group">
+        <label>Owner</label>
+        <select id="sk-owner">
+          <option value="">🌐 Shared — available to all agents</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Content <span class="muted">(Markdown)</span></label>
+        <textarea id="sk-content" rows="12" placeholder="# Skill Name&#10;&#10;Write guidelines, documentation, or instructions here.&#10;Supports full Markdown."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="closeSkillModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Skill</button>
+      </div>
+      <input type="hidden" id="sk-id" />
+    </form>
+  </div>
+</div>
+
+<!-- IMPORT SKILL MODAL (link external file/folder) -->
+<div id="import-modal" class="modal-overlay hidden" onclick="closeOnOverlay(event,'import-modal')">
+  <div class="modal modal-wide" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Import File or Folder</h2>
+      <button class="modal-close" onclick="document.getElementById('import-modal').classList.add('hidden')">×</button>
+    </div>
+    <div class="form-group">
+      <label>Browse</label>
+      <div class="file-browser" id="file-browser">
+        <div class="fb-path" id="fb-path"></div>
+        <div class="fb-entries" id="fb-entries"></div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Path <span class="req">*</span></label>
+        <input id="im-path" type="text" placeholder="/Users/friday/project/CLAUDE.md" />
+      </div>
+      <div class="form-group">
+        <label>Type</label>
+        <select id="im-type">
+          <option value="file">Single file (.md / .txt)</option>
+          <option value="folder">Whole folder (all .md files)</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Name <span class="req">*</span></label>
+        <input id="im-name" type="text" placeholder="e.g. Project CLAUDE.md" />
+      </div>
+      <div class="form-group">
+        <label>Folder</label>
+        <input id="im-folder" type="text" placeholder="e.g. project-docs" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Owner</label>
+      <select id="im-owner">
+        <option value="">🌐 Shared — available to all agents</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="document.getElementById('import-modal').classList.add('hidden')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveImportSkill()">Import</button>
+    </div>
+  </div>
+</div>
+
+<!-- SKILL ASSIGN MODAL -->
+<div id="assign-modal" class="modal-overlay hidden" onclick="closeOnOverlay(event,'assign-modal')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2 id="assign-modal-title">Assign Skills</h2>
+      <button class="modal-close" onclick="closeAssignModal()">×</button>
+    </div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Selected skills will be injected into every run and chat for this agent.</p>
+    <div id="assign-skill-list" class="assign-skill-list"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeAssignModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAssignSkills()">Save</button>
+    </div>
+    <input type="hidden" id="assign-agent-id" />
+  </div>
+</div>
+
+<!-- CRON MODAL -->
+<div id="cron-modal" class="modal-overlay hidden" onclick="closeOnOverlay(event,'cron-modal')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2 id="cron-modal-title">New Schedule</h2>
+      <button class="modal-close" onclick="closeCronModal()">×</button>
+    </div>
+    <form id="cron-form" onsubmit="saveCron(event)">
+      <div class="form-group">
+        <label>Name</label>
+        <input id="cf-name" type="text" placeholder="e.g. Daily standup report" />
+      </div>
+      <div class="form-group">
+        <label>Agent <span class="req">*</span></label>
+        <select id="cf-agent" required><option value="">Select agent…</option></select>
+      </div>
+      <div class="form-group">
+        <label>Schedule <span class="req">*</span></label>
+        <div class="schedule-presets" id="schedule-presets">
+          <button type="button" class="preset-btn" data-val="every 30 minutes">Every 30 min</button>
+          <button type="button" class="preset-btn" data-val="every hour">Hourly</button>
+          <button type="button" class="preset-btn" data-val="every day at 9am">Daily 9am</button>
+          <button type="button" class="preset-btn" data-val="every day at noon">Daily noon</button>
+          <button type="button" class="preset-btn" data-val="every weekday at 9am">Weekdays 9am</button>
+          <button type="button" class="preset-btn" data-val="every monday at 9am">Weekly Mon</button>
+        </div>
+        <input id="cf-schedule" type="text" placeholder="every day at 3pm — or pick a preset above" required />
+        <div id="schedule-preview" class="schedule-preview hidden"></div>
+        <div class="field-hint">Supports: <em>every day at 3pm, every friday at 10:30am, every 5 minutes, every weekday at 8am</em> — or raw cron</div>
+      </div>
+      <div class="form-group">
+        <label>Prompt — what to do each time <span class="req">*</span></label>
+        <textarea id="cf-prompt" rows="4" placeholder="Generate a brief status report of all open tasks and any blockers. Keep it under 200 words." required></textarea>
+      </div>
+      <div class="form-group">
+        <label>Skills <span class="optional-label">(optional)</span></label>
+        <div id="cf-skills" class="skill-picker"></div>
+        <div class="field-hint">Skills provide extra context and instructions for the scheduled run</div>
+      </div>
+      <div class="form-group toggle-row">
+        <label>Enabled</label>
+        <label class="toggle"><input type="checkbox" id="cf-enabled" checked /><span class="toggle-slider"></span></label>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="closeCronModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="cron-save-btn">Create Schedule</button>
+      </div>
+      <input type="hidden" id="cf-id" />
+    </form>
+  </div>
+</div>
+
+<!-- QUICK RUN MODAL -->
+<div id="run-modal" class="modal-overlay hidden" onclick="closeOnOverlay(event,'run-modal')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2 id="run-modal-title">Run Agent</h2>
+      <button class="modal-close" onclick="closeRunModal()">×</button>
+    </div>
+    <div class="form-group">
+      <label>Prompt</label>
+      <textarea id="run-prompt" rows="5" placeholder="What should this agent do?&#10;&#10;Ctrl+Enter to submit"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeRunModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitRun()">Run Agent</button>
+    </div>
+    <input type="hidden" id="run-agent-id" />
+  </div>
+</div>
+
+<!-- RUN DETAIL MODAL -->
+<div id="detail-modal" class="modal-overlay hidden" onclick="closeOnOverlay(event,'detail-modal')">
+  <div class="modal modal-wide" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2 id="detail-title">Run</h2>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span id="detail-status-badge"></span>
+        <button class="btn btn-danger btn-sm" id="detail-stop-btn" onclick="stopDetailRun()" style="display:none">Stop</button>
+        <button class="modal-close" onclick="closeDetailModal()">×</button>
+      </div>
+    </div>
+    <div class="detail-meta" id="detail-meta"></div>
+    <div class="output-box" id="detail-output"></div>
+  </div>
+</div>
+
+<!-- CHAT MODAL -->
+<div id="chat-modal" class="modal-overlay hidden" onclick="closeOnOverlay(event,'chat-modal')">
+  <div class="modal modal-chat" onclick="event.stopPropagation()">
+    <div class="chat-header">
+      <div class="chat-agent-info">
+        <div class="chat-avatar" id="chat-avatar"></div>
+        <div>
+          <div class="chat-agent-name" id="chat-agent-name">Agent</div>
+          <div class="chat-agent-role" id="chat-agent-role"></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-ghost btn-sm" onclick="clearChat()">Clear</button>
+        <button class="modal-close" onclick="closeChatModal()">×</button>
+      </div>
+    </div>
+    <div class="chat-messages" id="chat-messages"></div>
+    <div class="chat-input-area">
+      <textarea id="chat-input" rows="2" placeholder="Message… (Enter to send, Shift+Enter for new line)"></textarea>
+      <button class="chat-send-btn" id="chat-send-btn" onclick="sendChat()">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </button>
+    </div>
+    <input type="hidden" id="chat-agent-id" />
+  </div>
+</div>
+
+<!-- ACTIVATE SKILL MODAL -->
+<div id="activate-modal" class="modal-overlay hidden" onclick="closeOnOverlay(event,'activate-modal')">
+  <div class="modal modal-sm" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2>🔓 Activate Skill</h2>
+      <button class="modal-close" onclick="document.getElementById('activate-modal').classList.add('hidden')">×</button>
+    </div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px">
+      Enter the creator password to publish <strong id="activate-skill-name"></strong> and make it available to agents.
+    </p>
+    <div class="form-group">
+      <label>Creator Password</label>
+      <input id="activate-password" type="password" placeholder="Enter password…"
+        onkeydown="if(event.key==='Enter')submitActivation()" />
+    </div>
+    <div id="activate-error" style="color:var(--red);font-size:13px;min-height:20px;margin-bottom:8px"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="document.getElementById('activate-modal').classList.add('hidden')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitActivation()">Activate Skill</button>
+    </div>
+    <input type="hidden" id="activate-skill-id" />
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div id="settings-modal" class="modal-overlay hidden" onclick="closeOnOverlay(event,'settings-modal')">
+  <div class="modal modal-sm" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Settings</h3>
+      <button class="modal-close" onclick="closeSettings()">×</button>
+    </div>
+    <div class="form-group" style="padding:20px">
+      <label>Theme Color</label>
+      <div class="theme-swatches" id="theme-swatches"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeSettings()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST NOTIFICATIONS -->
+<div id="toast-container" class="toast-container"></div>
+
+<script src="/app.js?v=5"></script>
+</body>
+</html>

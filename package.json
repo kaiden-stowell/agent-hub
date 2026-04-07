@@ -1,0 +1,21 @@
+{
+  "name": "agent-hub",
+  "version": "1.1.0",
+  "description": "Agent orchestration dashboard with Telegram + iMessage",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "node-cron": "^4.2.1",
+    "node-telegram-bot-api": "^0.66.0",
+    "uuid": "^10.0.0",
+    "ws": "^8.17.1"
+  }
+}
