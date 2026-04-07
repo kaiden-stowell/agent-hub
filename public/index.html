@@ -11,6 +11,11 @@
   <link rel="stylesheet" href="/style.css?v=5" />
 </head>
 <body>
+<div id="update-banner" class="update-banner hidden">
+  <span id="update-banner-text">A new version is available!</span>
+  <button class="btn btn-sm" style="background:#fff;color:#09090b;font-weight:700" onclick="applyUpdate()">Update Now</button>
+  <button class="update-dismiss" onclick="dismissUpdate()">×</button>
+</div>
 <div id="app">
 
   <nav class="sidebar">

@@ -57,6 +57,58 @@ app.get('/api/version', (req, res) => {
   catch { res.json({ version: 'unknown' }); }
 });
 
+// ── Update check & apply ──────────────────────────────────────────────────
+const REPO_URL = 'https://raw.githubusercontent.com/kaiden-stowell/agent-hub/main/version.json';
+let cachedRemoteVersion = null;
+let lastVersionCheck = 0;
+
+app.get('/api/update/check', async (req, res) => {
+  try {
+    const localVersion = require('./version.json').version;
+    // Cache for 5 minutes
+    if (Date.now() - lastVersionCheck < 300000 && cachedRemoteVersion) {
+      return res.json({ local: localVersion, remote: cachedRemoteVersion, updateAvailable: cachedRemoteVersion !== localVersion });
+    }
+    const https = require('https');
+    const data = await new Promise((resolve, reject) => {
+      https.get(REPO_URL + '?t=' + Date.now(), { headers: { 'User-Agent': 'agent-hub' } }, r => {
+        let d = ''; r.on('data', c => d += c); r.on('end', () => resolve(d));
+      }).on('error', reject);
+    });
+    const remote = JSON.parse(data).version;
+    cachedRemoteVersion = remote;
+    lastVersionCheck = Date.now();
+    res.json({ local: localVersion, remote, updateAvailable: remote !== localVersion });
+  } catch (e) {
+    res.json({ local: require('./version.json').version, remote: null, updateAvailable: false, error: e.message });
+  }
+});
+
+app.post('/api/update/apply', (req, res) => {
+  const fs = require('fs');
+  const { execSync } = require('child_process');
+  const gitDir = path.join(__dirname, '.git');
+  if (!fs.existsSync(gitDir)) {
+    return res.status(400).json({ error: 'Not a git repo. Run the install script first.' });
+  }
+  try {
+    execSync('git pull --ff-only origin main', { cwd: __dirname, stdio: 'pipe', timeout: 30000 });
+    const newVersion = JSON.parse(fs.readFileSync(path.join(__dirname, 'version.json'), 'utf8')).version;
+    // Clear version cache
+    delete require.cache[require.resolve('./version.json')];
+    cachedRemoteVersion = null;
+    lastVersionCheck = 0;
+    res.json({ ok: true, version: newVersion, restarting: true });
+    // Restart after response is sent
+    setTimeout(() => {
+      console.log('[update] Restarting server after update...');
+      process.exit(0); // launchd or process manager will restart us
+    }, 1000);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── Stats ──────────────────────────────────────────────────────────────────
 app.get('/api/stats', (req, res) => res.json(db.getStats(req.query.boardId || null)));
 

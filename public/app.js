@@ -1632,5 +1632,44 @@ function fmtDate(iso) { return new Date(iso).toLocaleDateString(undefined, { mon
     const el = document.getElementById('version-label');
     if (el) el.textContent = 'v' + v.version;
   }).catch(() => {});
+  checkForUpdate();
+  setInterval(checkForUpdate, 5 * 60 * 1000); // check every 5 min
   setInterval(() => { refreshStats(); refreshActiveRuns(); refreshActiveTasks(); }, 15000);
 })();
+
+// ── Auto-update ─────────────────────────────────────────────────────────────
+let updateDismissed = null;
+
+async function checkForUpdate() {
+  try {
+    const data = await api('/update/check');
+    if (data.updateAvailable && data.remote !== updateDismissed) {
+      const banner = document.getElementById('update-banner');
+      document.getElementById('update-banner-text').textContent = `Update available: v${data.local} → v${data.remote}`;
+      banner.classList.remove('hidden');
+    }
+  } catch {}
+}
+
+function dismissUpdate() {
+  const banner = document.getElementById('update-banner');
+  banner.classList.add('hidden');
+  // Remember dismissed version so we don't nag until next new version
+  const text = document.getElementById('update-banner-text').textContent;
+  const match = text.match(/→ v(.+)$/);
+  if (match) updateDismissed = match[1];
+}
+
+async function applyUpdate() {
+  const banner = document.getElementById('update-banner');
+  banner.classList.add('updating');
+  document.getElementById('update-banner-text').textContent = 'Updating... please wait';
+  try {
+    const result = await api('/update/apply', { method: 'POST' });
+    document.getElementById('update-banner-text').textContent = `Updated to v${result.version}! Reloading...`;
+    setTimeout(() => location.reload(), 3000);
+  } catch (e) {
+    document.getElementById('update-banner-text').textContent = 'Update failed: ' + e.message;
+    banner.classList.remove('updating');
+  }
+}
