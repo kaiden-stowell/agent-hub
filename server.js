@@ -543,13 +543,15 @@ app.get('/api/integrations/status', (req, res) => {
   const botInfo = telegram.getBotInfo();
   // Check if Composio key is set
   const envContent = (() => { try { return require('fs').readFileSync(path.join(__dirname, '.env'), 'utf8'); } catch { return ''; } })();
-  const composioKey = (envContent.match(/^COMPOSIO_API_KEY=(.+)$/m) || [])[1]?.trim();
+  const getKey = name => (envContent.match(new RegExp('^' + name + '=(.+)$', 'm')) || [])[1]?.trim();
   res.json({
     telegram: telegram.isConnected(),
     telegramUsername: botInfo?.username || null,
     telegramName: botInfo?.first_name || null,
     imessage: true,
-    composio: !!composioKey,
+    composio: !!getKey('COMPOSIO_API_KEY'),
+    zapier: !!getKey('ZAPIER_API_KEY'),
+    make: !!getKey('MAKE_API_KEY'),
   });
 });
 
@@ -571,6 +573,42 @@ app.post('/api/integrations/composio', (req, res) => {
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
+});
+
+// Generic webhook integration connect/disconnect (Zapier, Make, etc.)
+app.post('/api/integrations/:name', (req, res) => {
+  const { name } = req.params;
+  if (['telegram', 'composio'].includes(name)) return res.status(400).json({ error: 'Use dedicated endpoint' });
+  const { apiKey } = req.body;
+  if (!apiKey?.trim()) return res.status(400).json({ error: 'API key is required' });
+  const envKey = name.toUpperCase() + '_API_KEY';
+  const envPath = path.join(__dirname, '.env');
+  try {
+    let content = '';
+    try { content = require('fs').readFileSync(envPath, 'utf8'); } catch {}
+    if (content.includes(envKey + '=')) {
+      content = content.replace(new RegExp('^' + envKey + '=.*', 'm'), `${envKey}=${apiKey.trim()}`);
+    } else {
+      content += `\n${envKey}=${apiKey.trim()}`;
+    }
+    require('fs').writeFileSync(envPath, content);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/integrations/:name', (req, res) => {
+  const { name } = req.params;
+  if (['telegram', 'composio'].includes(name)) {
+    // Fall through to dedicated handlers below
+  }
+  const envKey = name.toUpperCase() + '_API_KEY';
+  const envPath = path.join(__dirname, '.env');
+  try {
+    let content = require('fs').readFileSync(envPath, 'utf8');
+    content = content.replace(new RegExp('^' + envKey + '=.*', 'm'), envKey + '=');
+    require('fs').writeFileSync(envPath, content);
+  } catch {}
+  res.json({ ok: true });
 });
 
 app.delete('/api/integrations/composio', (req, res) => {

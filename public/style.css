@@ -475,6 +475,25 @@ html, body { height: 100%; background: var(--bg); color: var(--text);
 .int-info h3 { font-weight: 600; margin-bottom: 3px; }
 .int-info p  { font-size: 12.5px; color: var(--text-muted); }
 .int-info { flex: 1; }
+.int-section-label {
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--text-dim); padding: 18px 0 8px; margin-top: 4px;
+}
+.int-apps-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px;
+  margin-bottom: 8px;
+}
+.int-app-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
+  padding: 14px 10px; display: flex; flex-direction: column; align-items: center; gap: 8px;
+  font-size: 12px; font-weight: 500; color: var(--text-muted);
+  transition: border-color .2s, transform .2s;
+}
+.int-app-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+.int-app-icon {
+  width: 36px; height: 36px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+}
 
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 22px; margin-bottom: 14px; }
 .card h3 { font-size: 15px; font-weight: 600; margin-bottom: 14px; }

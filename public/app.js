@@ -1399,6 +1399,8 @@ async function loadIntegrations() {
   const s = await api('/integrations/status');
   renderTelegramState(s.telegram, s.telegramUsername, s.telegramName);
   renderComposioState(s.composio);
+  renderWebhookState('zapier', s.zapier);
+  renderWebhookState('make', s.make);
   const feedData = await api('/imessage/feed');
   const feedEl = document.getElementById('imsg-feed');
   if (feedEl) { feedEl.innerHTML = ''; feedData.forEach(appendImessageFeedItem); }
@@ -1443,6 +1445,47 @@ async function disconnectComposio() {
   await api('/integrations/composio', { method: 'DELETE' });
   renderComposioState(false);
   showToast('Composio disconnected', 'info');
+}
+
+// Generic webhook integration (Zapier, Make, etc.)
+function renderWebhookState(name, connected) {
+  const form = document.getElementById(name + '-connect-form');
+  const info = document.getElementById(name + '-connected-info');
+  const badge = document.getElementById(name + '-badge');
+  if (!form || !info || !badge) return;
+  if (connected) {
+    form.classList.add('hidden');
+    info.classList.remove('hidden');
+    badge.innerHTML = '<span class="badge badge-on">Connected</span>';
+  } else {
+    form.classList.remove('hidden');
+    info.classList.add('hidden');
+    badge.innerHTML = '<span class="badge badge-off">Off</span>';
+  }
+}
+
+async function connectWebhookIntegration(name) {
+  const input = document.getElementById(name + '-key-input');
+  const key = input.value.trim();
+  const errEl = document.getElementById(name + '-error');
+  if (!key) { errEl.textContent = 'Please paste your API key'; errEl.classList.remove('hidden'); return; }
+  errEl.classList.add('hidden');
+  document.getElementById(name + '-connect-btn').disabled = true;
+  try {
+    await api('/integrations/' + name, { method: 'POST', body: JSON.stringify({ apiKey: key }) });
+    renderWebhookState(name, true);
+    showToast(name.charAt(0).toUpperCase() + name.slice(1) + ' connected!', 'success');
+  } catch (e) {
+    errEl.textContent = e.message; errEl.classList.remove('hidden');
+  }
+  document.getElementById(name + '-connect-btn').disabled = false;
+}
+
+async function disconnectWebhookIntegration(name) {
+  if (!confirm('Disconnect ' + name.charAt(0).toUpperCase() + name.slice(1) + '?')) return;
+  await api('/integrations/' + name, { method: 'DELETE' });
+  renderWebhookState(name, false);
+  showToast(name.charAt(0).toUpperCase() + name.slice(1) + ' disconnected', 'info');
 }
 
 // ── Inbox ──────────────────────────────────────────────────────────────────
