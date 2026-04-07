@@ -53,34 +53,45 @@ app.get('/api/debug', (req, res) => {
 });
 
 app.get('/api/version', (req, res) => {
-  try { res.json(require('./version.json')); }
-  catch { res.json({ version: 'unknown' }); }
+  res.json({ version: getLocalVersion() });
 });
 
 // ── Update check & apply ──────────────────────────────────────────────────
-const REPO_URL = 'https://raw.githubusercontent.com/kaiden-stowell/agent-hub/main/version.json';
+// Use GitHub API (no CDN cache) instead of raw.githubusercontent.com
+const REPO_API_URL = 'https://api.github.com/repos/kaiden-stowell/agent-hub/contents/version.json?ref=main';
 let cachedRemoteVersion = null;
 let lastVersionCheck = 0;
 
+function getLocalVersion() {
+  try {
+    return JSON.parse(require('fs').readFileSync(path.join(__dirname, 'version.json'), 'utf8')).version;
+  } catch { return 'unknown'; }
+}
+
 app.get('/api/update/check', async (req, res) => {
   try {
-    const localVersion = require('./version.json').version;
-    // Cache for 5 minutes
-    if (Date.now() - lastVersionCheck < 300000 && cachedRemoteVersion) {
+    const localVersion = getLocalVersion();
+    const forceCheck = req.query.force === '1';
+    // Cache for 2 minutes unless forced
+    if (!forceCheck && Date.now() - lastVersionCheck < 120000 && cachedRemoteVersion) {
       return res.json({ local: localVersion, remote: cachedRemoteVersion, updateAvailable: cachedRemoteVersion !== localVersion });
     }
     const https = require('https');
     const data = await new Promise((resolve, reject) => {
-      https.get(REPO_URL + '?t=' + Date.now(), { headers: { 'User-Agent': 'agent-hub' } }, r => {
+      https.get(REPO_API_URL, {
+        headers: { 'User-Agent': 'agent-hub', 'Accept': 'application/vnd.github.v3+json' }
+      }, r => {
         let d = ''; r.on('data', c => d += c); r.on('end', () => resolve(d));
       }).on('error', reject);
     });
-    const remote = JSON.parse(data).version;
+    const json = JSON.parse(data);
+    const content = Buffer.from(json.content, 'base64').toString('utf8');
+    const remote = JSON.parse(content).version;
     cachedRemoteVersion = remote;
     lastVersionCheck = Date.now();
     res.json({ local: localVersion, remote, updateAvailable: remote !== localVersion });
   } catch (e) {
-    res.json({ local: require('./version.json').version, remote: null, updateAvailable: false, error: e.message });
+    res.json({ local: getLocalVersion(), remote: null, updateAvailable: false, error: e.message });
   }
 });
 
@@ -93,9 +104,7 @@ app.post('/api/update/apply', (req, res) => {
   }
   try {
     execSync('git pull --ff-only origin main', { cwd: __dirname, stdio: 'pipe', timeout: 30000 });
-    const newVersion = JSON.parse(fs.readFileSync(path.join(__dirname, 'version.json'), 'utf8')).version;
-    // Clear version cache
-    delete require.cache[require.resolve('./version.json')];
+    const newVersion = getLocalVersion();
     cachedRemoteVersion = null;
     lastVersionCheck = 0;
     res.json({ ok: true, version: newVersion, restarting: true });
