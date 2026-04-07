@@ -107,11 +107,15 @@ function startRun(agentId, prompt, opts = {}) {
 
   // Build prompt: role + skills context + (COO live state) + task
   let fullPrompt;
-  // Merge extra skill IDs from cron/opts with agent's own skills
-  const runAgent = opts.skillIds?.length
-    ? { ...agent, skill_ids: [...new Set([...(agent.skill_ids || []), ...opts.skillIds])] }
+  // Merge extra skill IDs from cron/opts with agent's own skills, filter out empty strings
+  const agentSkills = (agent.skill_ids || []).filter(Boolean);
+  const extraSkills = (opts.skillIds || []).filter(Boolean);
+  const mergedSkills = [...new Set([...agentSkills, ...extraSkills])];
+  const runAgent = mergedSkills.length
+    ? { ...agent, skill_ids: mergedSkills }
     : agent;
   const skillsCtx = skills.buildSkillsContext(runAgent);
+  if (skillsCtx) console.log(`[runner] Injecting skills context (${skillsCtx.length} chars) for agent ${agent.name}`);
   if (agent.protected && getCOOContextPrompt) {
     fullPrompt = agent.prompt + skillsCtx + getCOOContextPrompt(agent.board_id) + '\n\n---\n\n' + prompt;
   } else {

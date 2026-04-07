@@ -283,7 +283,7 @@ app.post('/api/skills', (req, res) => {
     folder: folder?.trim() || '',
     tags: tags || '[]',
     owner_agent_id: owner_agent_id || null,
-    active: false, // requires activation with creator password
+    active: true,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
