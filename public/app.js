@@ -933,6 +933,17 @@ function resetEditorPanel() {
     </div>`;
 }
 
+const skillFolderState = {}; // label -> open/closed
+
+function toggleSkillFolder(label, gid) {
+  const items = document.getElementById(gid);
+  const chev = document.getElementById('chev-' + gid);
+  const isOpen = !items.classList.contains('collapsed');
+  items.classList.toggle('collapsed', isOpen);
+  chev.classList.toggle('open', !isOpen);
+  skillFolderState[label] = !isOpen;
+}
+
 function renderSkillsSidebar() {
   const sidebar = document.getElementById('skills-sidebar');
   if (!allSkills.length) {
@@ -969,31 +980,38 @@ function renderSkillsSidebar() {
       </div>`).join('');
   }
 
+  let groupIdx = 0;
+  function collapsibleGroup(icon, label, list, startOpen = true) {
+    const gid = 'sg-' + (groupIdx++);
+    const isOpen = skillFolderState[label] !== undefined ? skillFolderState[label] : startOpen;
+    return `<div class="skills-folder-group">
+      <div class="skills-folder-label" onclick="toggleSkillFolder('${esc(label)}','${gid}')" style="cursor:pointer;user-select:none">
+        <span class="folder-chevron ${isOpen ? 'open' : ''}" id="chev-${gid}">▸</span>
+        ${icon} ${esc(label)}
+        <span class="folder-count">${list.length}</span>
+      </div>
+      <div class="folder-items ${isOpen ? '' : 'collapsed'}" id="${gid}">
+        ${skillRows(list)}
+      </div>
+    </div>`;
+  }
+
   let html = '';
 
   // Shared skills without a folder
   if (sharedNoFolder.length) {
-    html += `<div class="skills-folder-group">
-      <div class="skills-folder-label">Shared</div>
-      ${skillRows(sharedNoFolder)}
-    </div>`;
+    html += collapsibleGroup('', 'Shared', sharedNoFolder, true);
   }
 
   // Shared skills grouped by folder
   for (const [folder, skills] of Object.entries(sharedByFolder).sort()) {
     const folderDisplay = folder.charAt(0).toUpperCase() + folder.slice(1);
-    html += `<div class="skills-folder-group">
-      <div class="skills-folder-label">📂 ${esc(folderDisplay)}</div>
-      ${skillRows(skills)}
-    </div>`;
+    html += collapsibleGroup('📂', folderDisplay, skills, false);
   }
 
   // Agent-owned skills
   for (const [agentName, skills] of Object.entries(byAgent).sort()) {
-    html += `<div class="skills-folder-group">
-      <div class="skills-folder-label">👤 ${esc(agentName)}</div>
-      ${skillRows(skills)}
-    </div>`;
+    html += collapsibleGroup('👤', agentName, skills, true);
   }
 
   sidebar.innerHTML = html || '<div class="empty-hint" style="padding:20px">No skills yet</div>';
