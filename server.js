@@ -17,7 +17,7 @@ const scheduler = require('./cron-scheduler');
 const coo       = require('./coo');
 const skillsMgr = require('./skills-manager');
 
-const HOST = process.env.HOST || '127.0.0.1';
+const HOST = process.env.HOST || '0.0.0.0';
 const PORT = parseInt(process.env.PORT || '12789', 10);
 
 const app = express();
