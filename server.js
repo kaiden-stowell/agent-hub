@@ -125,7 +125,9 @@ app.post('/api/skills/upload', (req, res) => {
   const created = [];
   for (const f of files) {
     if (!f.name || !f.content) continue;
-    const name = f.name.replace(/\.md$/i, '').replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    // Clean name: remove extension, convert dashes/underscores to spaces, title case
+    const rawName = f.name.replace(/\.(md|txt)$/i, '');
+    const name = rawName.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     const skill = {
       id: uuidv4(), board_id: boardId || db.DEFAULT_BOARD, name,
       description: '',

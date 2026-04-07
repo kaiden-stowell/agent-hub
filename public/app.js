@@ -941,8 +941,16 @@ function renderSkillsSidebar() {
   }
 
   // Split into shared and agent-owned
-  const shared   = allSkills.filter(s => !s.owner_agent_id);
-  const owned    = allSkills.filter(s => s.owner_agent_id);
+  const shared = allSkills.filter(s => !s.owner_agent_id);
+  const owned  = allSkills.filter(s => s.owner_agent_id);
+
+  // Group shared skills by folder
+  const sharedNoFolder = shared.filter(s => !s.folder);
+  const sharedByFolder = {};
+  for (const s of shared.filter(s => s.folder)) {
+    if (!sharedByFolder[s.folder]) sharedByFolder[s.folder] = [];
+    sharedByFolder[s.folder].push(s);
+  }
 
   // Group owned by agent
   const byAgent = {};
@@ -957,20 +965,30 @@ function renderSkillsSidebar() {
       <div class="skill-row ${s.id === activeSkillId ? 'active' : ''} ${!s.active ? 'skill-row-pending' : ''}" onclick="openSkill('${s.id}')" id="srow-${s.id}">
         <span class="skill-row-icon">${s.type === 'folder' ? '📁' : s.type === 'file' ? '🔗' : '📄'}</span>
         <span class="skill-row-name">${esc(s.name)}</span>
-        ${!s.active ? `<span class="skill-type-badge skill-pending-badge">🔒 Pending</span>` : ''}
-        ${s.active && s.type !== 'inline' ? `<span class="skill-type-badge skill-type-${s.type}">${s.type}</span>` : ''}
+        ${!s.active ? `<span class="skill-type-badge skill-pending-badge">🔒</span>` : ''}
       </div>`).join('');
   }
 
   let html = '';
 
-  if (shared.length) {
+  // Shared skills without a folder
+  if (sharedNoFolder.length) {
     html += `<div class="skills-folder-group">
-      <div class="skills-folder-label">🌐 Shared</div>
-      ${skillRows(shared)}
+      <div class="skills-folder-label">Shared</div>
+      ${skillRows(sharedNoFolder)}
     </div>`;
   }
 
+  // Shared skills grouped by folder
+  for (const [folder, skills] of Object.entries(sharedByFolder).sort()) {
+    const folderDisplay = folder.charAt(0).toUpperCase() + folder.slice(1);
+    html += `<div class="skills-folder-group">
+      <div class="skills-folder-label">📂 ${esc(folderDisplay)}</div>
+      ${skillRows(skills)}
+    </div>`;
+  }
+
+  // Agent-owned skills
   for (const [agentName, skills] of Object.entries(byAgent).sort()) {
     html += `<div class="skills-folder-group">
       <div class="skills-folder-label">👤 ${esc(agentName)}</div>
