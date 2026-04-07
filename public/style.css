@@ -126,6 +126,23 @@ html, body { height: 100%; background: var(--bg); color: var(--text);
   border-color: #fff; box-shadow: 0 0 0 2px var(--accent), 0 0 12px var(--accent-glow);
 }
 
+/* ── DROP ZONE ── */
+.drop-zone {
+  border: 2px dashed var(--border2); border-radius: var(--r);
+  padding: 28px 20px; margin-bottom: 20px;
+  display: flex; align-items: center; justify-content: center;
+  transition: border-color .2s, background .2s;
+  cursor: pointer;
+}
+.drop-zone:hover { border-color: var(--text-dim); }
+.drop-zone.drag-over { border-color: var(--accent); background: var(--accent-glow); }
+.drop-zone-content { text-align: center; }
+.drop-zone-icon { font-size: 32px; margin-bottom: 8px; }
+.drop-zone-text { font-size: 14px; font-weight: 600; color: var(--text-muted); }
+.drop-zone-hint { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+.drop-zone.uploading { pointer-events: none; opacity: .6; }
+.drop-zone.uploading .drop-zone-text { color: var(--accent-h); }
+
 /* ── UPDATE BANNER ── */
 .update-banner {
   position: fixed; top: 0; left: 0; right: 0; z-index: 999;

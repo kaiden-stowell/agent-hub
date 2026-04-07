@@ -1637,6 +1637,87 @@ function fmtDate(iso) { return new Date(iso).toLocaleDateString(undefined, { mon
   setInterval(() => { refreshStats(); refreshActiveRuns(); refreshActiveTasks(); }, 15000);
 })();
 
+// ── Skill drag & drop ───────────────────────────────────────────────────────
+function handleSkillDragOver(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  document.getElementById('skill-drop-zone').classList.add('drag-over');
+}
+function handleSkillDragLeave(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  document.getElementById('skill-drop-zone').classList.remove('drag-over');
+}
+
+async function handleSkillDrop(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const zone = document.getElementById('skill-drop-zone');
+  zone.classList.remove('drag-over');
+  zone.classList.add('uploading');
+  document.querySelector('.drop-zone-text').textContent = 'Reading files...';
+
+  const mdFiles = [];
+
+  async function readEntry(entry, folderName) {
+    if (entry.isFile) {
+      if (entry.name.endsWith('.md') || entry.name.endsWith('.txt')) {
+        const file = await new Promise(r => entry.file(r));
+        const content = await file.text();
+        mdFiles.push({ name: entry.name, content, folder: folderName || '' });
+      }
+    } else if (entry.isDirectory) {
+      const reader = entry.createReader();
+      const entries = await new Promise((resolve, reject) => {
+        const all = [];
+        function readBatch() {
+          reader.readEntries(batch => {
+            if (!batch.length) return resolve(all);
+            all.push(...batch);
+            readBatch();
+          }, reject);
+        }
+        readBatch();
+      });
+      for (const child of entries) {
+        await readEntry(child, folderName || entry.name);
+      }
+    }
+  }
+
+  try {
+    const items = e.dataTransfer.items;
+    for (let i = 0; i < items.length; i++) {
+      const entry = items[i].webkitGetAsEntry?.();
+      if (entry) await readEntry(entry, '');
+    }
+
+    if (!mdFiles.length) {
+      showToast('No .md or .txt files found in the drop', 'error');
+      zone.classList.remove('uploading');
+      document.querySelector('.drop-zone-text').textContent = 'Drag & drop a folder or .md files here';
+      return;
+    }
+
+    document.querySelector('.drop-zone-text').textContent = `Uploading ${mdFiles.length} skill${mdFiles.length > 1 ? 's' : ''}...`;
+
+    const result = await api('/skills/upload', {
+      method: 'POST',
+      body: JSON.stringify({ files: mdFiles, boardId: currentBoardId }),
+    });
+
+    showToast(`${result.count} skill${result.count > 1 ? 's' : ''} created!`, 'success');
+    allSkills = await api(bUrl('/skills'));
+    renderSkillsSidebar();
+    if (result.created.length) openSkill(result.created[0].id);
+  } catch (err) {
+    showToast('Upload failed: ' + err.message, 'error');
+  }
+
+  zone.classList.remove('uploading');
+  document.querySelector('.drop-zone-text').textContent = 'Drag & drop a folder or .md files here';
+}
+
 // ── Auto-update ─────────────────────────────────────────────────────────────
 let updateDismissed = null;
 

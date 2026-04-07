@@ -199,6 +199,13 @@
         </div>
       </div>
       <p class="skills-intro">Skills teach your agents how to do things. Write instructions, paste guidelines, or upload a document -- agents will read it before every task or chat.</p>
+      <div class="drop-zone" id="skill-drop-zone" ondragover="handleSkillDragOver(event)" ondragleave="handleSkillDragLeave(event)" ondrop="handleSkillDrop(event)">
+        <div class="drop-zone-content">
+          <div class="drop-zone-icon">📂</div>
+          <div class="drop-zone-text">Drag &amp; drop a folder or .md files here</div>
+          <div class="drop-zone-hint">We'll create a skill from each .md file we find</div>
+        </div>
+      </div>
       <div class="skills-layout">
         <div class="skills-sidebar" id="skills-sidebar"></div>
         <div class="skills-editor-panel" id="skills-editor-panel">

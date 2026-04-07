@@ -109,6 +109,34 @@ app.post('/api/update/apply', (req, res) => {
   }
 });
 
+// ── Skill upload (drag & drop) ────────────────────────────────────────────
+app.post('/api/skills/upload', (req, res) => {
+  const { files, boardId } = req.body;
+  if (!Array.isArray(files) || !files.length) return res.status(400).json({ error: 'No files provided' });
+  const created = [];
+  for (const f of files) {
+    if (!f.name || !f.content) continue;
+    const name = f.name.replace(/\.md$/i, '').replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    const skill = {
+      id: uuidv4(), board_id: boardId || db.DEFAULT_BOARD, name,
+      description: '',
+      type: 'inline',
+      file_path: null,
+      folder: f.folder || '',
+      tags: '[]',
+      owner_agent_id: null,
+      active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    db.insertSkill(skill);
+    skillsMgr.writeSkillContent(skill.id, f.content);
+    broadcast('skill:created', skill);
+    created.push({ id: skill.id, name: skill.name });
+  }
+  res.status(201).json({ created, count: created.length });
+});
+
 // ── Stats ──────────────────────────────────────────────────────────────────
 app.get('/api/stats', (req, res) => res.json(db.getStats(req.query.boardId || null)));
 
