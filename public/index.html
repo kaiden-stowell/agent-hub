@@ -499,6 +499,81 @@
           <button class="btn btn-ghost btn-sm" onclick="disconnectWebhookIntegration('make')">Disconnect</button>
         </div>
 
+        <!-- Custom Apps -->
+        <div class="int-section-label">Your Custom Apps</div>
+
+        <!-- Lovable -->
+        <div class="integration-card" id="lovable-card">
+          <div class="int-icon" style="background:linear-gradient(135deg,#FF6B6B,#FF8E8E)">
+            <svg viewBox="0 0 24 24" fill="white" width="26" height="26"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          </div>
+          <div class="int-info">
+            <h3>Lovable</h3>
+            <p id="lovable-status-text">Connect your Lovable apps with webhook and API key</p>
+          </div>
+          <span id="lovable-badge"><span class="badge badge-off">Off</span></span>
+        </div>
+        <div id="lovable-connect-form" class="telegram-connect-form">
+          <div class="form-group">
+            <label>Webhook URL</label>
+            <input id="lovable-webhook-input" type="text" placeholder="https://your-app.lovable.app/api/webhook" autocomplete="off" />
+          </div>
+          <div class="form-group">
+            <label>API Key</label>
+            <input id="lovable-key-input" type="password" placeholder="Your Lovable app API key" autocomplete="off" />
+          </div>
+          <div style="display:flex;gap:8px;justify-content:flex-end">
+            <button class="btn btn-primary" onclick="connectCustomApp('lovable')" id="lovable-connect-btn">Connect</button>
+          </div>
+          <div id="lovable-error" class="tg-error hidden"></div>
+        </div>
+        <div id="lovable-connected-info" class="telegram-connected-info hidden">
+          <div class="tg-bot-info">
+            <span class="tg-bot-icon">💜</span>
+            <div>
+              <div class="tg-bot-name" id="lovable-connected-name">Lovable Connected</div>
+              <div class="tg-bot-hint" id="lovable-connected-hint">Webhook and API key saved</div>
+            </div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="disconnectCustomApp('lovable')">Disconnect</button>
+        </div>
+
+        <!-- Base44 -->
+        <div class="integration-card" id="base44-card">
+          <div class="int-icon" style="background:linear-gradient(135deg,#2563EB,#3B82F6)">
+            <svg viewBox="0 0 24 24" fill="white" width="26" height="26"><path d="M4 4h6v6H4V4zm10 0h6v6h-6V4zM4 14h6v6H4v-6zm10 0h6v6h-6v-6z" stroke="white" stroke-width="1" fill="none"/><path d="M7 7h0m10 0h0M7 17h0m10 0h0" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+          </div>
+          <div class="int-info">
+            <h3>Base44</h3>
+            <p id="base44-status-text">Connect your Base44 apps with webhook and API key</p>
+          </div>
+          <span id="base44-badge"><span class="badge badge-off">Off</span></span>
+        </div>
+        <div id="base44-connect-form" class="telegram-connect-form">
+          <div class="form-group">
+            <label>Webhook URL</label>
+            <input id="base44-webhook-input" type="text" placeholder="https://your-app.base44.app/api/webhook" autocomplete="off" />
+          </div>
+          <div class="form-group">
+            <label>API Key</label>
+            <input id="base44-key-input" type="password" placeholder="Your Base44 app API key" autocomplete="off" />
+          </div>
+          <div style="display:flex;gap:8px;justify-content:flex-end">
+            <button class="btn btn-primary" onclick="connectCustomApp('base44')" id="base44-connect-btn">Connect</button>
+          </div>
+          <div id="base44-error" class="tg-error hidden"></div>
+        </div>
+        <div id="base44-connected-info" class="telegram-connected-info hidden">
+          <div class="tg-bot-info">
+            <span class="tg-bot-icon">🔷</span>
+            <div>
+              <div class="tg-bot-name" id="base44-connected-name">Base44 Connected</div>
+              <div class="tg-bot-hint" id="base44-connected-hint">Webhook and API key saved</div>
+            </div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="disconnectCustomApp('base44')">Disconnect</button>
+        </div>
+
         <div class="imessage-feed-panel" id="imessage-feed-panel">
           <div class="imsg-feed-header">
             <span class="imsg-feed-title">Recent iMessage Activity</span>

@@ -1401,6 +1401,8 @@ async function loadIntegrations() {
   renderComposioState(s.composio);
   renderWebhookState('zapier', s.zapier);
   renderWebhookState('make', s.make);
+  renderCustomAppState('lovable', s.lovable);
+  renderCustomAppState('base44', s.base44);
   const feedData = await api('/imessage/feed');
   const feedEl = document.getElementById('imsg-feed');
   if (feedEl) { feedEl.innerHTML = ''; feedData.forEach(appendImessageFeedItem); }
@@ -1479,6 +1481,54 @@ async function connectWebhookIntegration(name) {
     errEl.textContent = e.message; errEl.classList.remove('hidden');
   }
   document.getElementById(name + '-connect-btn').disabled = false;
+}
+
+// Custom app integrations (Lovable, Base44 — webhook + API key)
+function renderCustomAppState(name, data) {
+  const form = document.getElementById(name + '-connect-form');
+  const info = document.getElementById(name + '-connected-info');
+  const badge = document.getElementById(name + '-badge');
+  if (!form || !info || !badge || !data) return;
+  if (data.connected) {
+    form.classList.add('hidden');
+    info.classList.remove('hidden');
+    badge.innerHTML = '<span class="badge badge-on">Connected</span>';
+    const hint = document.getElementById(name + '-connected-hint');
+    if (hint) {
+      const parts = [];
+      if (data.webhook) parts.push('Webhook: ' + data.webhook.slice(0, 40) + (data.webhook.length > 40 ? '...' : ''));
+      if (data.hasKey) parts.push('API key saved');
+      hint.textContent = parts.join(' · ') || 'Connected';
+    }
+  } else {
+    form.classList.remove('hidden');
+    info.classList.add('hidden');
+    badge.innerHTML = '<span class="badge badge-off">Off</span>';
+  }
+}
+
+async function connectCustomApp(name) {
+  const webhook = document.getElementById(name + '-webhook-input').value.trim();
+  const apiKey = document.getElementById(name + '-key-input').value.trim();
+  const errEl = document.getElementById(name + '-error');
+  if (!webhook && !apiKey) { errEl.textContent = 'Enter a webhook URL or API key'; errEl.classList.remove('hidden'); return; }
+  errEl.classList.add('hidden');
+  document.getElementById(name + '-connect-btn').disabled = true;
+  try {
+    await api('/integrations/custom/' + name, { method: 'POST', body: JSON.stringify({ webhook, apiKey }) });
+    renderCustomAppState(name, { connected: true, webhook, hasKey: !!apiKey });
+    showToast(name.charAt(0).toUpperCase() + name.slice(1) + ' connected!', 'success');
+  } catch (e) {
+    errEl.textContent = e.message; errEl.classList.remove('hidden');
+  }
+  document.getElementById(name + '-connect-btn').disabled = false;
+}
+
+async function disconnectCustomApp(name) {
+  if (!confirm('Disconnect ' + name.charAt(0).toUpperCase() + name.slice(1) + '?')) return;
+  await api('/integrations/custom/' + name, { method: 'DELETE' });
+  renderCustomAppState(name, { connected: false });
+  showToast(name.charAt(0).toUpperCase() + name.slice(1) + ' disconnected', 'info');
 }
 
 async function disconnectWebhookIntegration(name) {

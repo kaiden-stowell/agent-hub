@@ -552,6 +552,8 @@ app.get('/api/integrations/status', (req, res) => {
     composio: !!getKey('COMPOSIO_API_KEY'),
     zapier: !!getKey('ZAPIER_API_KEY'),
     make: !!getKey('MAKE_API_KEY'),
+    lovable: { connected: !!(getKey('LOVABLE_WEBHOOK') || getKey('LOVABLE_API_KEY')), webhook: getKey('LOVABLE_WEBHOOK') || '', hasKey: !!getKey('LOVABLE_API_KEY') },
+    base44: { connected: !!(getKey('BASE44_WEBHOOK') || getKey('BASE44_API_KEY')), webhook: getKey('BASE44_WEBHOOK') || '', hasKey: !!getKey('BASE44_API_KEY') },
   });
 });
 
@@ -573,6 +575,45 @@ app.post('/api/integrations/composio', (req, res) => {
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
+});
+
+// Custom app connect/disconnect (Lovable, Base44 — stores webhook + API key)
+app.post('/api/integrations/custom/:name', (req, res) => {
+  const { name } = req.params;
+  const { webhook, apiKey } = req.body;
+  if (!webhook?.trim() && !apiKey?.trim()) return res.status(400).json({ error: 'Webhook URL or API key required' });
+  const prefix = name.toUpperCase();
+  const envPath = path.join(__dirname, '.env');
+  try {
+    let content = '';
+    try { content = require('fs').readFileSync(envPath, 'utf8'); } catch {}
+    // Save webhook
+    if (webhook?.trim()) {
+      const wKey = prefix + '_WEBHOOK';
+      if (content.includes(wKey + '=')) content = content.replace(new RegExp('^' + wKey + '=.*', 'm'), `${wKey}=${webhook.trim()}`);
+      else content += `\n${wKey}=${webhook.trim()}`;
+    }
+    // Save API key
+    if (apiKey?.trim()) {
+      const aKey = prefix + '_API_KEY';
+      if (content.includes(aKey + '=')) content = content.replace(new RegExp('^' + aKey + '=.*', 'm'), `${aKey}=${apiKey.trim()}`);
+      else content += `\n${aKey}=${apiKey.trim()}`;
+    }
+    require('fs').writeFileSync(envPath, content);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/integrations/custom/:name', (req, res) => {
+  const prefix = req.params.name.toUpperCase();
+  const envPath = path.join(__dirname, '.env');
+  try {
+    let content = require('fs').readFileSync(envPath, 'utf8');
+    content = content.replace(new RegExp('^' + prefix + '_WEBHOOK=.*', 'm'), prefix + '_WEBHOOK=');
+    content = content.replace(new RegExp('^' + prefix + '_API_KEY=.*', 'm'), prefix + '_API_KEY=');
+    require('fs').writeFileSync(envPath, content);
+  } catch {}
+  res.json({ ok: true });
 });
 
 // Generic webhook integration connect/disconnect (Zapier, Make, etc.)
