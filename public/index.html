@@ -189,11 +189,11 @@
       <div class="view-header">
         <h1>Skills</h1>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-ghost" onclick="showImportSkill()">↑ Import File</button>
-          <button class="btn btn-primary" onclick="showNewSkill()">+ New Skill</button>
+          <button class="btn btn-ghost" onclick="showImportSkill()">Upload File</button>
+          <button class="btn btn-primary" onclick="showNewSkill()">+ Create Skill</button>
         </div>
       </div>
-      <p class="skills-intro">Skills are markdown files injected into an agent's context before every run or chat. Add guides, style rules, API docs, or anything else your agents should know.</p>
+      <p class="skills-intro">Skills teach your agents how to do things. Write instructions, paste guidelines, or upload a document -- agents will read it before every task or chat.</p>
       <div class="skills-layout">
         <div class="skills-sidebar" id="skills-sidebar"></div>
         <div class="skills-editor-panel" id="skills-editor-panel">
@@ -437,33 +437,37 @@
 <div id="skill-modal" class="modal-overlay hidden" onclick="closeOnOverlay(event,'skill-modal')">
   <div class="modal modal-wide" onclick="event.stopPropagation()">
     <div class="modal-header">
-      <h2 id="skill-modal-title">New Skill</h2>
+      <h2 id="skill-modal-title">Create a Skill</h2>
       <button class="modal-close" onclick="closeSkillModal()">×</button>
     </div>
     <form id="skill-form" onsubmit="saveSkill(event)">
-      <div class="form-row">
-        <div class="form-group">
-          <label>Name <span class="req">*</span></label>
-          <input id="sk-name" type="text" placeholder="e.g. Python Style Guide" required />
-        </div>
-        <div class="form-group">
-          <label>Folder <span class="muted">(for organisation)</span></label>
-          <input id="sk-folder" type="text" placeholder="e.g. coding, research, security" />
-        </div>
+      <div class="form-group">
+        <label>What should this skill be called? <span class="req">*</span></label>
+        <input id="sk-name" type="text" placeholder="e.g. Email Writing Guide, Brand Voice, Code Standards" required />
       </div>
       <div class="form-group">
-        <label>Description</label>
-        <input id="sk-description" type="text" placeholder="One-line summary of what this skill provides" />
+        <label>What does this skill teach?</label>
+        <input id="sk-description" type="text" placeholder="e.g. How to write professional emails in our company tone" />
       </div>
       <div class="form-group">
-        <label>Owner</label>
+        <label>Who should have this skill?</label>
         <select id="sk-owner">
-          <option value="">🌐 Shared — available to all agents</option>
+          <option value="">All agents (shared)</option>
         </select>
       </div>
       <div class="form-group">
-        <label>Content <span class="muted">(Markdown)</span></label>
-        <textarea id="sk-content" rows="12" placeholder="# Skill Name&#10;&#10;Write guidelines, documentation, or instructions here.&#10;Supports full Markdown."></textarea>
+        <label>Instructions</label>
+        <p class="field-hint" style="margin-bottom:8px">Write or paste the knowledge you want the agent to follow. This can be rules, examples, documentation, or anything helpful.</p>
+        <textarea id="sk-content" rows="14" placeholder="Write your instructions here...&#10;&#10;For example:&#10;&#10;- Always greet the customer by name&#10;- Use a friendly but professional tone&#10;- Never make promises about timelines&#10;- End every email with our company signature"></textarea>
+      </div>
+      <div id="sk-advanced-toggle" style="margin-bottom:12px">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('sk-advanced').style.display='';this.style.display='none'">Show advanced options</button>
+      </div>
+      <div id="sk-advanced" style="display:none">
+        <div class="form-group">
+          <label>Category <span class="muted optional-label">(optional — for organizing your skills)</span></label>
+          <input id="sk-folder" type="text" placeholder="e.g. writing, coding, support" />
+        </div>
       </div>
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost" onclick="closeSkillModal()">Cancel</button>
@@ -478,48 +482,42 @@
 <div id="import-modal" class="modal-overlay hidden" onclick="closeOnOverlay(event,'import-modal')">
   <div class="modal modal-wide" onclick="event.stopPropagation()">
     <div class="modal-header">
-      <h2>Import File or Folder</h2>
+      <h2>Upload a Document</h2>
       <button class="modal-close" onclick="document.getElementById('import-modal').classList.add('hidden')">×</button>
     </div>
+    <p class="field-hint" style="margin-bottom:16px">Pick a file or folder from your computer. The agent will read it before every task.</p>
     <div class="form-group">
-      <label>Browse</label>
+      <label>Find your file</label>
       <div class="file-browser" id="file-browser">
         <div class="fb-path" id="fb-path"></div>
         <div class="fb-entries" id="fb-entries"></div>
       </div>
     </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>Path <span class="req">*</span></label>
-        <input id="im-path" type="text" placeholder="/Users/friday/project/CLAUDE.md" />
-      </div>
-      <div class="form-group">
-        <label>Type</label>
-        <select id="im-type">
-          <option value="file">Single file (.md / .txt)</option>
-          <option value="folder">Whole folder (all .md files)</option>
-        </select>
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>Name <span class="req">*</span></label>
-        <input id="im-name" type="text" placeholder="e.g. Project CLAUDE.md" />
-      </div>
-      <div class="form-group">
-        <label>Folder</label>
-        <input id="im-folder" type="text" placeholder="e.g. project-docs" />
-      </div>
+    <div class="form-group">
+      <label>Selected file path</label>
+      <input id="im-path" type="text" placeholder="Click a file above, or paste a path here" />
     </div>
     <div class="form-group">
-      <label>Owner</label>
-      <select id="im-owner">
-        <option value="">🌐 Shared — available to all agents</option>
+      <label>What should this be called?</label>
+      <input id="im-name" type="text" placeholder="e.g. Company Handbook, API Reference" />
+    </div>
+    <div class="form-group">
+      <label>What type of file is this?</label>
+      <select id="im-type">
+        <option value="file">A single document</option>
+        <option value="folder">An entire folder of documents</option>
       </select>
     </div>
+    <div class="form-group">
+      <label>Who should have access?</label>
+      <select id="im-owner">
+        <option value="">All agents (shared)</option>
+      </select>
+    </div>
+    <input type="hidden" id="im-folder" value="" />
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="document.getElementById('import-modal').classList.add('hidden')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveImportSkill()">Import</button>
+      <button class="btn btn-primary" onclick="saveImportSkill()">Upload Skill</button>
     </div>
   </div>
 </div>

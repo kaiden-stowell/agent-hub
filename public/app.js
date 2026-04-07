@@ -1007,10 +1007,12 @@ async function openSkill(skillId) {
 
 // skill-modal now has a scope selector — shared vs private to agent
 function showNewSkill(defaultOwnerAgentId = null) {
-  document.getElementById('skill-modal-title').textContent = 'New Skill';
+  document.getElementById('skill-modal-title').textContent = 'Create a Skill';
   document.getElementById('skill-form').reset();
   document.getElementById('sk-id').value = '';
   document.getElementById('sk-owner').value = defaultOwnerAgentId || '';
+  document.getElementById('sk-advanced').style.display = 'none';
+  document.getElementById('sk-advanced-toggle').style.display = '';
   document.getElementById('skill-modal').classList.remove('hidden');
   setTimeout(() => document.getElementById('sk-name').focus(), 60);
 }
@@ -1026,6 +1028,14 @@ async function editSkill(skillId) {
   document.getElementById('sk-description').value   = s.description || '';
   document.getElementById('sk-content').value       = s.content || '';
   document.getElementById('sk-owner').value         = s.owner_agent_id || '';
+  // Show advanced if folder is set
+  if (s.folder) {
+    document.getElementById('sk-advanced').style.display = '';
+    document.getElementById('sk-advanced-toggle').style.display = 'none';
+  } else {
+    document.getElementById('sk-advanced').style.display = 'none';
+    document.getElementById('sk-advanced-toggle').style.display = '';
+  }
   document.getElementById('skill-modal').classList.remove('hidden');
 }
 
