@@ -82,14 +82,64 @@ fi
 
 chmod +x start.sh release.sh update.sh install.sh 2>/dev/null || true
 
+# ── Install as a persistent background service via launchd ──
+PLIST_NAME="com.agent-hub.server"
+PLIST_PATH="$HOME/Library/LaunchAgents/${PLIST_NAME}.plist"
+NODE_BIN=$(which node)
+
+mkdir -p "$HOME/Library/LaunchAgents"
+
+cat > "$PLIST_PATH" <<PLISTEOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>${PLIST_NAME}</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>${NODE_BIN}</string>
+        <string>${DEST}/server.js</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>${DEST}</string>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>${DEST}/logs/stdout.log</string>
+    <key>StandardErrorPath</key>
+    <string>${DEST}/logs/stderr.log</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:${HOME}/.local/bin</string>
+    </dict>
+</dict>
+</plist>
+PLISTEOF
+
+mkdir -p "$DEST/logs"
+
+# Unload if already running, then load
+launchctl unload "$PLIST_PATH" 2>/dev/null || true
+launchctl load "$PLIST_PATH"
+
 VERSION=$(node -p "require('./version.json').version" 2>/dev/null || echo "unknown")
 
+sleep 2
 echo ""
-echo "  ✅ Agent Hub v${VERSION} installed to $DEST"
+if curl -s -o /dev/null http://127.0.0.1:12789/api/version 2>/dev/null; then
+  echo "  ✅ Agent Hub v${VERSION} installed and running!"
+  echo ""
+  echo "  Open http://127.0.0.1:12789"
+else
+  echo "  ✅ Agent Hub v${VERSION} installed!"
+  echo "  ⚠️  Server may still be starting. Check logs at: $DEST/logs/"
+fi
 echo ""
-echo "  To start:"
-echo "    cd $DEST"
-echo "    node server.js"
-echo ""
-echo "  Then open http://localhost:12789"
+echo "  The server runs in the background and starts automatically on boot."
+echo "  To stop:    launchctl unload ~/Library/LaunchAgents/${PLIST_NAME}.plist"
+echo "  To restart:  launchctl unload ~/Library/LaunchAgents/${PLIST_NAME}.plist && launchctl load ~/Library/LaunchAgents/${PLIST_NAME}.plist"
 echo ""
