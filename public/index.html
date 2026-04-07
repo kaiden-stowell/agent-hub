@@ -336,49 +336,52 @@
 <div id="agent-modal" class="modal-overlay hidden" onclick="closeOnOverlay(event,'agent-modal')">
   <div class="modal" onclick="event.stopPropagation()">
     <div class="modal-header">
-      <h2 id="modal-title">New Agent</h2>
+      <h2 id="modal-title">Create an Agent</h2>
       <button class="modal-close" onclick="closeAgentModal()">×</button>
     </div>
     <form id="agent-form" onsubmit="saveAgent(event)">
-      <div class="form-row">
+      <div class="form-group">
+        <label>Agent name <span class="req">*</span></label>
+        <input id="f-name" type="text" placeholder="e.g. Email Writer, Code Reviewer, Research Assistant" required />
+      </div>
+      <div class="form-group">
+        <label>What does this agent do? <span class="req">*</span></label>
+        <textarea id="f-prompt" rows="4" placeholder="Describe what this agent should do. For example:&#10;&#10;You are an email writer. Write professional emails in a friendly tone. Always include a clear subject line and a call to action." required></textarea>
+      </div>
+      <div class="form-group">
+        <label>Short description</label>
+        <input id="f-description" type="text" placeholder="A one-liner that shows up on the agent's card" />
+      </div>
+      <div id="agent-advanced-toggle" style="margin-bottom:12px">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('agent-advanced').style.display='';this.style.display='none'">Show advanced options</button>
+      </div>
+      <div id="agent-advanced" style="display:none">
         <div class="form-group">
-          <label>Name <span class="req">*</span></label>
-          <input id="f-name" type="text" placeholder="e.g. Backend Engineer" required />
-        </div>
-        <div class="form-group">
-          <label>Model</label>
+          <label>AI Model</label>
           <select id="f-model">
             <option value="claude-sonnet-4-6">Sonnet 4.6 (recommended)</option>
             <option value="claude-opus-4-6">Opus 4.6 (most capable)</option>
             <option value="claude-haiku-4-5-20251001">Haiku 4.5 (fastest)</option>
           </select>
         </div>
-      </div>
-      <div class="form-group">
-        <label>Role / System Prompt <span class="req">*</span></label>
-        <textarea id="f-prompt" rows="4" placeholder="You are an expert backend engineer specialising in Node.js and PostgreSQL. You write clean, secure, well-tested code..." required></textarea>
-      </div>
-      <div class="form-group">
-        <label>Description <span class="muted">(shown on cards)</span></label>
-        <input id="f-description" type="text" placeholder="Short one-liner of what this agent does" />
-      </div>
-      <div class="form-group">
-        <label>Working Directory</label>
-        <input id="f-workdir" type="text" placeholder="/Users/friday" />
-      </div>
-      <div class="form-row">
         <div class="form-group">
-          <label>Telegram Chat ID</label>
-          <input id="f-telegram" type="text" placeholder="123456789" />
+          <label>Working directory</label>
+          <input id="f-workdir" type="text" placeholder="/Users/friday" />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Telegram Chat ID</label>
+            <input id="f-telegram" type="text" placeholder="123456789" />
+          </div>
+          <div class="form-group">
+            <label>iMessage Handle</label>
+            <input id="f-imessage" type="text" placeholder="+15555551234" />
+          </div>
         </div>
         <div class="form-group">
-          <label>iMessage Handle</label>
-          <input id="f-imessage" type="text" placeholder="+15555551234" />
+          <label>Tags</label>
+          <input id="f-tags" type="text" placeholder="code, backend, nodejs" />
         </div>
-      </div>
-      <div class="form-group">
-        <label>Tags <span class="muted">(comma-separated)</span></label>
-        <input id="f-tags" type="text" placeholder="code, backend, nodejs" />
       </div>
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost" onclick="closeAgentModal()">Cancel</button>
@@ -398,20 +401,20 @@
     </div>
     <form id="task-form" onsubmit="saveTask(event)">
       <div class="form-group">
-        <label>Title <span class="req">*</span></label>
-        <input id="tf-title" type="text" placeholder="e.g. Review the auth module for SQL injection" required />
+        <label>What needs to be done? <span class="req">*</span></label>
+        <input id="tf-title" type="text" placeholder="e.g. Write a welcome email, Review the landing page, Fix the login bug" required />
       </div>
       <div class="form-group">
-        <label>Description</label>
-        <textarea id="tf-description" rows="3" placeholder="More detail about what needs to be done..."></textarea>
+        <label>Any more details?</label>
+        <textarea id="tf-description" rows="3" placeholder="Add any extra context or requirements..."></textarea>
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label>Assign to Agent</label>
-          <select id="tf-agent"><option value="">Unassigned</option></select>
+          <label>Who should do this?</label>
+          <select id="tf-agent"><option value="">No one yet</option></select>
         </div>
         <div class="form-group">
-          <label>Priority</label>
+          <label>How important?</label>
           <select id="tf-priority">
             <option value="low">Low</option>
             <option value="medium" selected>Medium</option>
@@ -548,15 +551,15 @@
     </div>
     <form id="cron-form" onsubmit="saveCron(event)">
       <div class="form-group">
-        <label>Name</label>
-        <input id="cf-name" type="text" placeholder="e.g. Daily standup report" />
+        <label>Give it a name</label>
+        <input id="cf-name" type="text" placeholder="e.g. Morning text, Daily report, Weekly check-in" />
       </div>
       <div class="form-group">
-        <label>Agent <span class="req">*</span></label>
-        <select id="cf-agent" required><option value="">Select agent…</option></select>
+        <label>Which agent should run this?</label>
+        <select id="cf-agent" required><option value="">Pick an agent…</option></select>
       </div>
       <div class="form-group">
-        <label>Schedule <span class="req">*</span></label>
+        <label>How often?</label>
         <div class="schedule-presets" id="schedule-presets">
           <button type="button" class="preset-btn" data-val="every 30 minutes">Every 30 min</button>
           <button type="button" class="preset-btn" data-val="every hour">Hourly</button>
@@ -565,21 +568,23 @@
           <button type="button" class="preset-btn" data-val="every weekday at 9am">Weekdays 9am</button>
           <button type="button" class="preset-btn" data-val="every monday at 9am">Weekly Mon</button>
         </div>
-        <input id="cf-schedule" type="text" placeholder="every day at 3pm — or pick a preset above" required />
+        <input id="cf-schedule" type="text" placeholder="Pick a preset above or type: every day at 3pm, every friday at 10am" required />
         <div id="schedule-preview" class="schedule-preview hidden"></div>
-        <div class="field-hint">Supports: <em>every day at 3pm, every friday at 10:30am, every 5 minutes, every weekday at 8am</em> — or raw cron</div>
       </div>
       <div class="form-group">
-        <label>Prompt — what to do each time <span class="req">*</span></label>
-        <textarea id="cf-prompt" rows="4" placeholder="Generate a brief status report of all open tasks and any blockers. Keep it under 200 words." required></textarea>
-      </div>
-      <div class="form-group">
-        <label>Skills <span class="optional-label">(optional)</span></label>
+        <label>Attach a skill <span class="optional-label">(the agent will follow it)</span></label>
         <div id="cf-skills" class="skill-picker"></div>
-        <div class="field-hint">Skills provide extra context and instructions for the scheduled run</div>
+      </div>
+      <div class="form-group">
+        <label>What should the agent do? <span id="cf-prompt-req" class="req">*</span></label>
+        <div id="cf-prompt-presets" class="schedule-presets" style="margin-bottom:8px">
+          <button type="button" class="preset-btn prompt-preset" data-val="Follow the attached skill exactly." onclick="setCronPromptPreset(this)">Just follow the skill</button>
+          <button type="button" class="preset-btn prompt-preset" data-val="" onclick="setCronPromptPreset(this)">Custom instructions</button>
+        </div>
+        <textarea id="cf-prompt" rows="3" placeholder="Or write your own instructions here..." required></textarea>
       </div>
       <div class="form-group toggle-row">
-        <label>Enabled</label>
+        <label>Start running now?</label>
         <label class="toggle"><input type="checkbox" id="cf-enabled" checked /><span class="toggle-slider"></span></label>
       </div>
       <div class="modal-actions">

@@ -500,11 +500,13 @@ document.getElementById('run-prompt').addEventListener('keydown', e => { if (e.k
 
 // ── Agents CRUD ────────────────────────────────────────────────────────────
 function showCreateAgent() {
-  document.getElementById('modal-title').textContent = 'New Agent';
+  document.getElementById('modal-title').textContent = 'Create an Agent';
   document.getElementById('save-btn').textContent    = 'Create Agent';
   document.getElementById('agent-form').reset();
   document.getElementById('f-id').value      = '';
   document.getElementById('f-workdir').value = '/Users/friday';
+  document.getElementById('agent-advanced').style.display = 'none';
+  document.getElementById('agent-advanced-toggle').style.display = '';
   document.getElementById('agent-modal').classList.remove('hidden');
   setTimeout(() => document.getElementById('f-name').focus(), 60);
 }
@@ -521,6 +523,9 @@ async function openEditAgent(agentId) {
   document.getElementById('f-telegram').value    = a.telegram_chat_id || '';
   document.getElementById('f-imessage').value    = a.imessage_handle || '';
   document.getElementById('f-tags').value        = JSON.parse(a.tags || '[]').join(', ');
+  // Show advanced when editing
+  document.getElementById('agent-advanced').style.display = '';
+  document.getElementById('agent-advanced-toggle').style.display = 'none';
   document.getElementById('agent-modal').classList.remove('hidden');
 }
 function closeAgentModal() { document.getElementById('agent-modal').classList.add('hidden'); }
@@ -739,6 +744,7 @@ async function showNewCron() {
   document.getElementById('cf-enabled').checked = true;
   document.getElementById('schedule-preview').classList.add('hidden');
   document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('cf-prompt').style.display = '';
   _lastPreview = '';
   cronSelectedSkills = new Set();
   populateCronSkills();
@@ -761,7 +767,9 @@ async function editCron(cronId) {
   document.getElementById('cf-agent').value    = c.agent_id;
   document.getElementById('cf-schedule').value = c.schedule;
   document.getElementById('cf-prompt').value   = c.prompt;
+  document.getElementById('cf-prompt').style.display = '';
   document.getElementById('cf-enabled').checked = c.enabled;
+  document.querySelectorAll('.prompt-preset').forEach(b => b.classList.remove('active'));
   cronSelectedSkills = new Set(c.skill_ids || []);
   populateCronSkills();
   document.getElementById('cron-modal').classList.remove('hidden');
@@ -769,6 +777,21 @@ async function editCron(cronId) {
   previewSchedule(c.schedule);
 }
 function closeCronModal() { document.getElementById('cron-modal').classList.add('hidden'); }
+
+function setCronPromptPreset(btn) {
+  document.querySelectorAll('.prompt-preset').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const val = btn.dataset.val;
+  const textarea = document.getElementById('cf-prompt');
+  if (val) {
+    textarea.value = val;
+    textarea.style.display = 'none';
+  } else {
+    textarea.value = '';
+    textarea.style.display = '';
+    textarea.focus();
+  }
+}
 async function saveCron(e) {
   e.preventDefault();
   const id   = document.getElementById('cf-id').value;
