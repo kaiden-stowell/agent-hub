@@ -465,33 +465,38 @@ html, body { height: 100%; background: var(--bg); color: var(--text);
 .detail-meta { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-muted); }
 
 /* ── INTEGRATIONS ── */
-.integrations-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+.integrations-grid { display: flex; flex-direction: column; gap: 0; }
+
 .integration-card {
   background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--r); padding: 18px 20px;
+  border-radius: var(--r); padding: 16px 20px;
   display: flex; align-items: center; gap: 14px;
+  margin-bottom: 2px;
 }
-.int-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.int-info h3 { font-weight: 600; margin-bottom: 3px; }
-.int-info p  { font-size: 12.5px; color: var(--text-muted); }
-.int-info { flex: 1; }
+.integration-card:hover { border-color: var(--border2); }
+.int-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.int-info h3 { font-weight: 600; font-size: 14px; margin-bottom: 2px; }
+.int-info p  { font-size: 12px; color: var(--text-muted); line-height: 1.4; }
+.int-info { flex: 1; min-width: 0; }
+
 .int-section-label {
-  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em;
-  color: var(--text-dim); padding: 18px 0 8px; margin-top: 4px;
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em;
+  color: var(--text-dim); padding: 20px 0 10px;
 }
+
 .int-apps-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px;
-  margin-bottom: 8px;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 8px;
+  margin-bottom: 4px;
 }
 .int-app-card {
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
-  padding: 14px 10px; display: flex; flex-direction: column; align-items: center; gap: 8px;
-  font-size: 12px; font-weight: 500; color: var(--text-muted);
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-sm);
+  padding: 12px 8px; display: flex; flex-direction: column; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 500; color: var(--text-muted);
   transition: border-color .2s, transform .2s;
 }
-.int-app-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+.int-app-card:hover { border-color: var(--border2); transform: translateY(-1px); }
 .int-app-icon {
-  width: 36px; height: 36px; border-radius: 10px;
+  width: 32px; height: 32px; border-radius: 8px;
   display: flex; align-items: center; justify-content: center;
 }
 
@@ -502,35 +507,46 @@ html, body { height: 100%; background: var(--bg); color: var(--text);
 .setup-steps strong { color: var(--text); }
 code { background: var(--accent-glow); color: var(--accent-h); padding: 1px 5px; border-radius: 4px; font-size: 12px; font-family: monospace; }
 
-/* ── TELEGRAM CONNECT ── */
-.integrations-grid { flex-direction: column; }
-.telegram-card { align-items: flex-start; }
+/* ── Connect forms (shared by all integrations) ── */
 .telegram-connect-form, .telegram-connected-info {
-  background: var(--surface2); border: 1px solid var(--border);
-  border-radius: var(--r); padding: 20px; margin-top: -4px;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 18px 20px; margin-bottom: 6px;
 }
 .telegram-connect-form.hidden, .telegram-connected-info.hidden { display: none; }
-.tg-steps { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
-.tg-step { display: flex; align-items: flex-start; gap: 12px; font-size: 13.5px; color: var(--text-muted); }
+.tg-steps { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.tg-step { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--text-muted); }
 .tg-step strong { color: var(--text); }
 .tg-step-num {
-  width: 22px; height: 22px; border-radius: 50%; background: var(--accent-glow);
-  color: var(--accent-h); font-size: 12px; font-weight: 700;
+  width: 20px; height: 20px; border-radius: 50%; background: var(--accent-glow);
+  color: var(--accent-h); font-size: 11px; font-weight: 700;
   display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px;
 }
-.tg-input-row { display: flex; gap: 10px; }
+.tg-input-row { display: flex; gap: 8px; }
 .tg-input-row input {
-  flex: 1; background: var(--surface); border: 1px solid var(--border2);
-  border-radius: var(--r-sm); padding: 10px 14px; color: var(--text);
-  font-size: 13.5px; outline: none; font-family: 'SF Mono', monospace;
+  flex: 1; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--r-sm); padding: 9px 12px; color: var(--text);
+  font-size: 13px; outline: none; font-family: 'SF Mono', monospace;
+  transition: border-color .15s;
 }
-.tg-input-row input:focus { border-color: var(--accent); }
-.tg-error { color: var(--red); font-size: 13px; margin-top: 10px; }
-.tg-bot-info { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
-.tg-bot-icon { font-size: 28px; }
-.tg-bot-name { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
-.tg-bot-hint { font-size: 12.5px; color: var(--text-muted); }
+.tg-input-row input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+.tg-error { color: var(--red); font-size: 12px; margin-top: 8px; }
+.tg-error.hidden { display: none; }
+.tg-bot-info { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.tg-bot-icon { font-size: 24px; }
+.tg-bot-name { font-weight: 600; font-size: 13.5px; margin-bottom: 2px; }
+.tg-bot-hint { font-size: 12px; color: var(--text-muted); line-height: 1.4; }
 .telegram-connected-info { display: flex; flex-direction: column; }
+
+/* Connect form inputs inside integration forms */
+.telegram-connect-form .form-group { margin-bottom: 12px; }
+.telegram-connect-form .form-group label { font-size: 12px; margin-bottom: 4px; }
+.telegram-connect-form .form-group input {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--r-sm); padding: 9px 12px; color: var(--text);
+  font-size: 13px; outline: none; width: 100%; font-family: inherit;
+  transition: border-color .15s;
+}
+.telegram-connect-form .form-group input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
 
 /* ── Inbox nav badge ── */
 .nav-link { position: relative; }
