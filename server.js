@@ -125,7 +125,7 @@ app.post('/api/skills/upload', (req, res) => {
       folder: f.folder || '',
       tags: '[]',
       owner_agent_id: null,
-      active: true,
+      active: false,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -363,7 +363,7 @@ app.post('/api/skills', (req, res) => {
     folder: folder?.trim() || '',
     tags: tags || '[]',
     owner_agent_id: owner_agent_id || null,
-    active: true,
+    active: false,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
