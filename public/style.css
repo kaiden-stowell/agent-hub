@@ -104,7 +104,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text);
 .status-dot.error     { background: var(--red); }
 .status-label { font-size: 12px; color: var(--text-muted); }
 
-.version-label { font-size: 10px; color: var(--text-dim); text-align: center; margin-top: 6px; }
+.version-label { font-size: 11px; color: var(--accent-h); text-align: center; margin-top: 8px; font-weight: 600; background: var(--accent-glow); padding: 2px 10px; border-radius: 99px; letter-spacing: .02em; }
 
 .settings-btn {
   background: none; border: none; color: var(--text-dim); cursor: pointer;
