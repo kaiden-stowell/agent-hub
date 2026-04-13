@@ -107,7 +107,54 @@ app.post('/api/update/apply', (req, res) => {
     return res.status(400).json({ error: 'Not a git repo. Run the install script first.' });
   }
   try {
+    // Backup user data before updating
+    const dataDir = path.join(__dirname, 'data');
+    const skillsDir = path.join(__dirname, 'skills');
+    const backupDir = path.join(__dirname, 'backups', 'pre-update_' + new Date().toISOString().replace(/[:.]/g, '-'));
+    fs.mkdirSync(backupDir, { recursive: true });
+    // Backup data directory
+    if (fs.existsSync(dataDir)) {
+      const dataBackup = path.join(backupDir, 'data');
+      fs.mkdirSync(dataBackup, { recursive: true });
+      for (const f of fs.readdirSync(dataDir)) {
+        fs.copyFileSync(path.join(dataDir, f), path.join(dataBackup, f));
+      }
+    }
+    // Backup skills directory
+    if (fs.existsSync(skillsDir)) {
+      const skillsBackup = path.join(backupDir, 'skills');
+      fs.mkdirSync(skillsBackup, { recursive: true });
+      for (const f of fs.readdirSync(skillsDir)) {
+        fs.copyFileSync(path.join(skillsDir, f), path.join(skillsBackup, f));
+      }
+    }
+    // Backup .env
+    const envFile = path.join(__dirname, '.env');
+    if (fs.existsSync(envFile)) {
+      fs.copyFileSync(envFile, path.join(backupDir, '.env'));
+    }
+    console.log('[update] Backup saved to ' + backupDir);
+
+    // Stash any local changes to tracked files before pulling
+    try { execSync('git stash', { cwd: __dirname, stdio: 'pipe', timeout: 10000 }); } catch {}
     execSync('git pull --ff-only origin main', { cwd: __dirname, stdio: 'pipe', timeout: 30000 });
+
+    // Verify data survived — restore from backup if needed
+    const dbFile = path.join(dataDir, 'db.json');
+    const dbBackup = path.join(backupDir, 'data', 'db.json');
+    if (fs.existsSync(dbBackup)) {
+      let dataOk = false;
+      try {
+        const current = JSON.parse(fs.readFileSync(dbFile, 'utf8'));
+        dataOk = current && current.agents && Array.isArray(current.agents);
+      } catch {}
+      if (!dataOk) {
+        console.log('[update] Data file missing or corrupted after update — restoring from backup');
+        fs.mkdirSync(dataDir, { recursive: true });
+        fs.copyFileSync(dbBackup, dbFile);
+      }
+    }
+
     const newVersion = getLocalVersion();
     cachedRemoteVersion = null;
     lastVersionCheck = 0;
