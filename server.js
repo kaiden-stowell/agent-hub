@@ -82,19 +82,29 @@ app.get('/api/update/check', async (req, res) => {
     }
     const https = require('https');
     const data = await new Promise((resolve, reject) => {
-      https.get(REPO_API_URL, {
-        headers: { 'User-Agent': 'agent-hub', 'Accept': 'application/vnd.github.v3+json' }
+      const req = https.get(REPO_API_URL, {
+        headers: { 'User-Agent': 'agent-hub', 'Accept': 'application/vnd.github.v3+json' },
+        timeout: 10000,
       }, r => {
+        if (r.statusCode !== 200) {
+          reject(new Error(`GitHub API returned ${r.statusCode}`));
+          r.resume();
+          return;
+        }
         let d = ''; r.on('data', c => d += c); r.on('end', () => resolve(d));
-      }).on('error', reject);
+      });
+      req.on('error', reject);
+      req.on('timeout', () => { req.destroy(); reject(new Error('Request timed out')); });
     });
     const json = JSON.parse(data);
+    if (!json.content) throw new Error('No content in GitHub response');
     const content = Buffer.from(json.content, 'base64').toString('utf8');
     const remote = JSON.parse(content).version;
     cachedRemoteVersion = remote;
     lastVersionCheck = Date.now();
     res.json({ local: localVersion, remote, updateAvailable: remote !== localVersion });
   } catch (e) {
+    console.error('[update] Check failed:', e.message);
     res.json({ local: getLocalVersion(), remote: null, updateAvailable: false, error: e.message });
   }
 });
@@ -135,9 +145,27 @@ app.post('/api/update/apply', (req, res) => {
     }
     console.log('[update] Backup saved to ' + backupDir);
 
+    // Ensure git remote is set correctly
+    try {
+      const currentRemote = execSync('git remote get-url origin', { cwd: __dirname, stdio: 'pipe', timeout: 5000 }).toString().trim();
+      if (!currentRemote.includes('agent-hub')) {
+        execSync('git remote set-url origin https://github.com/kaiden-stowell/agent-hub.git', { cwd: __dirname, stdio: 'pipe', timeout: 5000 });
+      }
+    } catch {
+      try { execSync('git remote add origin https://github.com/kaiden-stowell/agent-hub.git', { cwd: __dirname, stdio: 'pipe', timeout: 5000 }); } catch {}
+    }
+
     // Stash any local changes to tracked files before pulling
     try { execSync('git stash', { cwd: __dirname, stdio: 'pipe', timeout: 10000 }); } catch {}
-    execSync('git pull --ff-only origin main', { cwd: __dirname, stdio: 'pipe', timeout: 30000 });
+
+    // Try fast-forward first, fall back to fetch+reset if diverged
+    try {
+      execSync('git pull --ff-only origin main', { cwd: __dirname, stdio: 'pipe', timeout: 30000 });
+    } catch {
+      console.log('[update] Fast-forward failed, trying fetch + reset...');
+      execSync('git fetch origin main', { cwd: __dirname, stdio: 'pipe', timeout: 30000 });
+      execSync('git reset --hard origin/main', { cwd: __dirname, stdio: 'pipe', timeout: 10000 });
+    }
 
     // Verify data survived — restore from backup if needed
     const dbFile = path.join(dataDir, 'db.json');
