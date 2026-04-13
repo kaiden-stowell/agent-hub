@@ -4,43 +4,78 @@ const path = require('path');
 
 const DATA_DIR       = path.join(__dirname, 'data');
 const DB_FILE        = path.join(DATA_DIR, 'db.json');
+const DB_BACKUP      = path.join(DATA_DIR, 'db.backup.json');
 const DEFAULT_BOARD  = 'board-default';
 
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
 function load() {
-  try {
-    const d = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
-    if (!d.tasks)  d.tasks  = [];
-    if (!d.chats)  d.chats  = [];
-    if (!d.crons)  d.crons  = [];
-    if (!d.skills) d.skills = [];
-    if (!d.boards) d.boards = [];
-    if (!d.inbox)  d.inbox  = [];
+  // Try main file first, then backup if main is corrupted
+  for (const file of [DB_FILE, DB_BACKUP]) {
+    try {
+      if (!fs.existsSync(file)) continue;
+      const raw = fs.readFileSync(file, 'utf8');
+      if (!raw.trim()) continue;
+      const d = JSON.parse(raw);
 
-    // Ensure the default board always exists
-    if (!d.boards.find(b => b.id === DEFAULT_BOARD)) {
-      d.boards.unshift({ id: DEFAULT_BOARD, name: 'Default', color: '#6366f1',
-        created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
+      // Validate that we got actual data (not an empty reset)
+      if (!d || typeof d !== 'object') continue;
+
+      if (!d.agents) d.agents = [];
+      if (!d.runs)   d.runs   = [];
+      if (!d.tasks)  d.tasks  = [];
+      if (!d.chats)  d.chats  = [];
+      if (!d.crons)  d.crons  = [];
+      if (!d.skills) d.skills = [];
+      if (!d.boards) d.boards = [];
+      if (!d.inbox)  d.inbox  = [];
+
+      // Ensure the default board always exists
+      if (!d.boards.find(b => b.id === DEFAULT_BOARD)) {
+        d.boards.unshift({ id: DEFAULT_BOARD, name: 'Default', color: '#6366f1',
+          created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
+      }
+
+      // Backfill board_id + skill_ids on existing records
+      d.agents = d.agents.map(a => ({ board_id: DEFAULT_BOARD, skill_ids: [], ...a }));
+      d.skills = d.skills.map(s => ({ board_id: DEFAULT_BOARD, owner_agent_id: null, active: true, ...s }));
+      d.tasks  = d.tasks.map(t  => ({ board_id: DEFAULT_BOARD, archived: false, ...t }));
+      d.crons  = d.crons.map(c  => ({ board_id: DEFAULT_BOARD, ...c }));
+
+      // If we recovered from backup, restore the main file
+      if (file === DB_BACKUP) {
+        console.log('[db] Recovered data from backup file');
+        try { fs.writeFileSync(DB_FILE, JSON.stringify(d, null, 2)); } catch {}
+      }
+
+      return d;
+    } catch (e) {
+      console.error(`[db] Failed to load ${file}: ${e.message}`);
+      continue;
     }
-
-    // Backfill board_id + skill_ids on existing records
-    d.agents = d.agents.map(a => ({ board_id: DEFAULT_BOARD, skill_ids: [], ...a }));
-    d.skills = d.skills.map(s => ({ board_id: DEFAULT_BOARD, owner_agent_id: null, active: true, ...s }));
-    d.tasks  = d.tasks.map(t  => ({ board_id: DEFAULT_BOARD, archived: false, ...t }));
-    d.crons  = d.crons.map(c  => ({ board_id: DEFAULT_BOARD, ...c }));
-    return d;
-  } catch {
-    const now = new Date().toISOString();
-    return {
-      agents: [], runs: [], tasks: [], chats: [], crons: [], skills: [], inbox: [],
-      boards: [{ id: DEFAULT_BOARD, name: 'Default', color: '#6366f1', created_at: now, updated_at: now }],
-    };
   }
+
+  // Only return empty state if neither file exists (fresh install)
+  console.log('[db] No existing data found — starting fresh');
+  const now = new Date().toISOString();
+  return {
+    agents: [], runs: [], tasks: [], chats: [], crons: [], skills: [], inbox: [],
+    boards: [{ id: DEFAULT_BOARD, name: 'Default', color: '#6366f1', created_at: now, updated_at: now }],
+  };
 }
 
 function save(data) {
-  fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
+  const json = JSON.stringify(data, null, 2);
+  // Backup current file before overwriting
+  try {
+    if (fs.existsSync(DB_FILE)) {
+      fs.copyFileSync(DB_FILE, DB_BACKUP);
+    }
+  } catch {}
+  // Atomic write: write to temp file, then rename
+  const tmpFile = DB_FILE + '.tmp';
+  fs.writeFileSync(tmpFile, json);
+  fs.renameSync(tmpFile, DB_FILE);
 }
 
 // ── Boards ──────────────────────────────────────────────────────────────────
