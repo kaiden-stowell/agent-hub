@@ -52,6 +52,12 @@ for f in server.js db.js runner.js coo.js cron-scheduler.js imessage.js telegram
 done
 [ -d public ] && cp -r public "$BACKUP/public"
 
+# Backup user data (agents, tasks, skills, schedules, etc.)
+[ -d data ]   && cp -r data "$BACKUP/data"
+[ -d skills ] && cp -r skills "$BACKUP/skills"
+[ -f .env ]   && cp .env "$BACKUP/.env"
+echo "  📦 Backed up user data (data/, skills/, .env)"
+
 echo "  📥 Applying v${NEW_VERSION}..."
 
 # Copy all files from the version bundle (skip manifest.json itself)
@@ -81,6 +87,22 @@ fi
 if ! diff -q "$SOURCE/package-lock.json" "$BACKUP/package.json" >/dev/null 2>&1; then
   echo "  📦 Installing dependencies..."
   npm install --production --silent 2>/dev/null || npm install --production
+fi
+
+# Verify user data survived the update
+if [ -f "$BACKUP/data/db.json" ]; then
+  if [ ! -f data/db.json ] || [ ! -s data/db.json ]; then
+    echo "  ⚠️  Data file missing after update — restoring from backup..."
+    mkdir -p data
+    cp "$BACKUP/data/db.json" data/db.json
+    [ -f "$BACKUP/data/db.backup.json" ] && cp "$BACKUP/data/db.backup.json" data/db.backup.json
+  fi
+fi
+
+# Restore skills if they were wiped
+if [ -d "$BACKUP/skills" ] && [ ! -d skills ]; then
+  echo "  ⚠️  Skills folder missing after update — restoring from backup..."
+  cp -r "$BACKUP/skills" skills
 fi
 
 echo ""
