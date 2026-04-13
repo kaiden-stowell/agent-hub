@@ -37,15 +37,19 @@ if [ -d "$DEST" ]; then
     echo "  Cancelled."
     exit 0
   fi
-  # Preserve data and .env
+  # Preserve all user data
   TEMP_DATA=$(mktemp -d)
-  [ -f "$DEST/.env" ] && cp "$DEST/.env" "$TEMP_DATA/.env"
-  [ -d "$DEST/data" ] && cp -r "$DEST/data" "$TEMP_DATA/data"
+  [ -f "$DEST/.env" ]    && cp "$DEST/.env" "$TEMP_DATA/.env"
+  [ -d "$DEST/data" ]    && cp -r "$DEST/data" "$TEMP_DATA/data"
+  [ -d "$DEST/skills" ]  && cp -r "$DEST/skills" "$TEMP_DATA/skills"
+  [ -d "$DEST/backups" ] && cp -r "$DEST/backups" "$TEMP_DATA/backups"
+  [ -d "$DEST/logs" ]    && cp -r "$DEST/logs" "$TEMP_DATA/logs"
+  echo "  Backed up user data to temp directory"
 fi
 
 echo "  Downloading Agent Hub..."
 if [ -d "$DEST/.git" ]; then
-  cd "$DEST" && git pull --ff-only origin main
+  cd "$DEST" && git stash 2>/dev/null; git pull --ff-only origin main
 else
   rm -rf "$DEST"
   git clone "$REPO" "$DEST"
@@ -55,9 +59,13 @@ cd "$DEST"
 
 # Restore preserved data
 if [ -d "${TEMP_DATA:-/nonexistent}" ]; then
-  [ -f "$TEMP_DATA/.env" ] && cp "$TEMP_DATA/.env" .env
-  [ -d "$TEMP_DATA/data" ] && cp -r "$TEMP_DATA/data" .
+  [ -f "$TEMP_DATA/.env" ]    && cp "$TEMP_DATA/.env" .env
+  [ -d "$TEMP_DATA/data" ]    && cp -r "$TEMP_DATA/data" .
+  [ -d "$TEMP_DATA/skills" ]  && cp -r "$TEMP_DATA/skills" .
+  [ -d "$TEMP_DATA/backups" ] && cp -r "$TEMP_DATA/backups" .
+  [ -d "$TEMP_DATA/logs" ]    && cp -r "$TEMP_DATA/logs" .
   rm -rf "$TEMP_DATA"
+  echo "  Restored user data"
 fi
 
 echo "  Installing dependencies..."
