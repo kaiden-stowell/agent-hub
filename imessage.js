@@ -11,7 +11,7 @@ function unixToAppleNs(unixMs) {
   return BigInt(Math.floor(unixMs / 1000 - APPLE_EPOCH_OFFSET_S)) * 1_000_000_000n;
 }
 
-const CHAT_DB = path.join(process.env.HOME || '/Users/friday', 'Library/Messages/chat.db');
+const CHAT_DB = path.join(process.env.HOME || require('os').homedir(), 'Library/Messages/chat.db');
 
 // agentId -> iMessage handle waiting for a reply
 const pendingReplies = new Map();
