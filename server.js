@@ -56,6 +56,10 @@ app.get('/api/version', (req, res) => {
   res.json({ version: getLocalVersion() });
 });
 
+app.get('/api/homedir', (req, res) => {
+  res.json({ homedir: process.env.HOME || require('os').homedir() });
+});
+
 // ── Update check & apply ──────────────────────────────────────────────────
 // Use GitHub API (no CDN cache) instead of raw.githubusercontent.com
 const REPO_API_URL = 'https://api.github.com/repos/kaiden-stowell/agent-hub/contents/version.json?ref=main';
@@ -442,7 +446,7 @@ app.put('/api/agents/:id/skills', (req, res) => {
 
 // File browser — list .md/.txt files in a directory
 app.get('/api/browse', (req, res) => {
-  const dir = req.query.path || process.env.HOME || '/Users/friday';
+  const dir = req.query.path || process.env.HOME || require('os').homedir();
   res.json({ path: dir, entries: skillsMgr.browseFiles(dir) });
 });
 
