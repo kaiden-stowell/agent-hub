@@ -1,6 +1,6 @@
 {
   "name": "agent-hub",
-  "version": "1.3.5",
+  "version": "1.3.6",
   "description": "Agent orchestration dashboard with Telegram + iMessage",
   "main": "server.js",
   "type": "commonjs",
