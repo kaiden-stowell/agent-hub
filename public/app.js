@@ -5,7 +5,8 @@ let currentBoardId = localStorage.getItem('currentBoardId') || 'board-default';
 let allSkills      = [];
 let activeSkillId  = null;
 let assignSelectedIds = new Set();
-let fileBrowserPath   = '/Users/friday';
+let fileBrowserPath   = '';
+let userHomeDir       = '';
 
 let ws = null;
 let agents = [];
@@ -504,7 +505,7 @@ function showCreateAgent() {
   document.getElementById('save-btn').textContent    = 'Create Agent';
   document.getElementById('agent-form').reset();
   document.getElementById('f-id').value      = '';
-  document.getElementById('f-workdir').value = '/Users/friday';
+  document.getElementById('f-workdir').value = userHomeDir;
   document.getElementById('agent-advanced').style.display = 'none';
   document.getElementById('agent-advanced-toggle').style.display = '';
   document.getElementById('agent-modal').classList.remove('hidden');
@@ -518,7 +519,7 @@ async function openEditAgent(agentId) {
   document.getElementById('f-name').value        = a.name;
   document.getElementById('f-description').value = a.description || '';
   document.getElementById('f-prompt').value      = a.prompt;
-  document.getElementById('f-workdir').value     = a.workdir || '/Users/friday';
+  document.getElementById('f-workdir').value     = a.workdir || userHomeDir;
   document.getElementById('f-model').value       = a.model || 'claude-sonnet-4-6';
   document.getElementById('f-telegram').value    = a.telegram_chat_id || '';
   document.getElementById('f-imessage').value    = a.imessage_handle || '';
@@ -537,7 +538,7 @@ async function saveAgent(e) {
     name: document.getElementById('f-name').value.trim(),
     description: document.getElementById('f-description').value.trim(),
     prompt: document.getElementById('f-prompt').value.trim(),
-    workdir: document.getElementById('f-workdir').value.trim() || '/Users/friday',
+    workdir: document.getElementById('f-workdir').value.trim() || userHomeDir,
     model: document.getElementById('f-model').value,
     telegram_chat_id: document.getElementById('f-telegram').value.trim() || null,
     imessage_handle: document.getElementById('f-imessage').value.trim() || null,
@@ -1133,7 +1134,7 @@ async function showImportSkill(defaultOwnerAgentId = null) {
   document.getElementById('im-folder').value  = '';
   document.getElementById('im-owner').value   = defaultOwnerAgentId || '';
   document.getElementById('import-modal').classList.remove('hidden');
-  await browseTo('/Users/friday');
+  await browseTo(userHomeDir);
 }
 
 async function browseTo(dir) {
@@ -1795,6 +1796,11 @@ function fmtDate(iso) { return new Date(iso).toLocaleDateString(undefined, { mon
 
 // ── Init ───────────────────────────────────────────────────────────────────
 (async () => {
+  try {
+    const h = await api('/homedir');
+    userHomeDir = h.homedir || '';
+    fileBrowserPath = userHomeDir;
+  } catch {}
   connectWS();
   await loadBoards();
   allSkills = await api(bUrl('/skills'));
