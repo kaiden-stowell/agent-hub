@@ -1925,9 +1925,26 @@ async function applyUpdate() {
   try {
     const result = await api('/update/apply', { method: 'POST' });
     document.getElementById('update-banner-text').textContent = `Updated to v${result.version}! Reloading...`;
-    setTimeout(() => location.reload(), 3000);
+    // Server restarts after update — poll until it's back up, then reload
+    const waitForServer = () => {
+      setTimeout(async () => {
+        try {
+          await fetch('/api/version');
+          location.reload();
+        } catch {
+          waitForServer();
+        }
+      }, 2000);
+    };
+    waitForServer();
   } catch (e) {
-    document.getElementById('update-banner-text').textContent = 'Update failed: ' + e.message;
-    banner.classList.remove('updating');
+    // If the server already restarted mid-request, the fetch will fail — try reloading
+    if (e.message === 'Failed to fetch' || e.message.includes('NetworkError')) {
+      document.getElementById('update-banner-text').textContent = 'Server restarting... reloading shortly';
+      setTimeout(() => location.reload(), 5000);
+    } else {
+      document.getElementById('update-banner-text').textContent = 'Update failed: ' + e.message;
+      banner.classList.remove('updating');
+    }
   }
 }
