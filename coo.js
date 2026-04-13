@@ -26,7 +26,7 @@ function ensureCOO(boardId, boardName) {
     name:        'COO',
     description: `Chief Operating Officer for ${boardName}`,
     prompt:      buildCOOPrompt(),
-    workdir:     process.env.HOME || '/Users/friday',
+    workdir:     process.env.HOME || require('os').homedir(),
     model:       'claude-sonnet-4-6',
     tags:        '["executive","management","automation"]',
     telegram_chat_id: null,
@@ -67,7 +67,7 @@ Base URL: ${HUB_URL}
 ### Hire a new agent
   curl -s -X POST ${HUB_URL}/api/agents \\
     -H "Content-Type: application/json" \\
-    -d '{"name":"Agent Name","prompt":"System prompt / role","description":"One-liner","model":"claude-sonnet-4-6","workdir":"${process.env.HOME || '/Users/friday'}"}'
+    -d '{"name":"Agent Name","prompt":"System prompt / role","description":"One-liner","model":"claude-sonnet-4-6","workdir":"${process.env.HOME || require('os').homedir()}"}'
 
 ### Create and assign a task
   curl -s -X POST ${HUB_URL}/api/tasks \\
