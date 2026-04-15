@@ -13,6 +13,7 @@ const db        = require('./db');
 const runner    = require('./runner');
 const telegram  = require('./telegram');
 const imessage  = require('./imessage');
+const localHubs = require('./local-hubs');
 const scheduler = require('./cron-scheduler');
 const coo       = require('./coo');
 const skillsMgr = require('./skills-manager');
@@ -804,6 +805,8 @@ server.listen(PORT, HOST, () => {
   scheduler.init();
   telegram.init();
   imessage.init();
+  localHubs.setBroadcast(broadcast);
+  localHubs.start();
 });
 
-process.on('SIGINT', () => { imessage.stop(); process.exit(0); });
+process.on('SIGINT', () => { imessage.stop(); localHubs.stop(); process.exit(0); });

@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const db = require('./db');
 const skills = require('./skills-manager');
+const localHubs = require('./local-hubs');
 let getCOOContextPrompt = null;
 
 const activeRuns  = new Map(); // runId  -> { proc, agentId }
@@ -72,6 +73,20 @@ function buildIntegrationsContext() {
         usage: parts.join('\n'),
       });
     }
+  }
+
+  // Discovered local hubs (instagram-hub and friends running on this Mac)
+  for (const hub of localHubs.getAll()) {
+    const statusBits = [];
+    if (hub.mode) statusBits.push(`mode=${hub.mode}`);
+    if (hub.version) statusBits.push(`v${hub.version}`);
+    const descWithStatus = [hub.desc, statusBits.length ? `(${statusBits.join(', ')})` : '']
+      .filter(Boolean).join(' ');
+    integrations.push({
+      name: hub.name,
+      desc: descWithStatus,
+      usage: hub.usage,
+    });
   }
 
   if (!integrations.length) return '';
