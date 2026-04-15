@@ -1070,17 +1070,17 @@ code { background: var(--accent-glow); color: var(--accent-h); padding: 1px 5px;
 /* ── Easter egg ── */
 .easter-egg {
   position: fixed;
-  right: 6px;
-  bottom: 6px;
-  width: 8px;
-  height: 8px;
+  right: 18px;
+  bottom: 18px;
+  width: 12px;
+  height: 12px;
   padding: 0;
   border: none;
   border-radius: 50%;
   background: rgba(255,255,255,0.08);
   color: transparent;
-  font-size: 6px;
-  line-height: 8px;
+  font-size: 8px;
+  line-height: 12px;
   cursor: default;
   z-index: 9999;
   opacity: 0.5;
