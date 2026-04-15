@@ -1948,3 +1948,9 @@ async function applyUpdate() {
     }
   }
 }
+
+// ── Easter egg ──
+document.getElementById('easter-egg')?.addEventListener('click', () => {
+  alert('how did you find this button');
+  window.open('https://www.youtube.com/watch?v=dQw4w9WgXcQ', '_blank', 'noopener');
+});

@@ -1066,3 +1066,23 @@ code { background: var(--accent-glow); color: var(--accent-h); padding: 1px 5px;
   .stats-row { grid-template-columns: repeat(2,1fr); }
   .form-row { grid-template-columns: 1fr; }
 }
+
+/* ── Easter egg ── */
+.easter-egg {
+  position: fixed;
+  right: 6px;
+  bottom: 6px;
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+  color: transparent;
+  font-size: 6px;
+  line-height: 8px;
+  cursor: default;
+  z-index: 9999;
+  opacity: 0.5;
+}
+.easter-egg:hover { opacity: 1; background: #6366f1; }
