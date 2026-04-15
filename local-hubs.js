@@ -16,6 +16,7 @@ const http = require('http');
 // (port, path) pairs to probe. Add new hubs here as they ship.
 const KNOWN_HUBS = [
   { port: 12790, path: '/api/integration-manifest', label: 'instagram-hub' },
+  { port: 12791, path: '/api/integration-manifest', label: 'social-hub' },
 ];
 
 let _cache = [];         // latest successful manifests
