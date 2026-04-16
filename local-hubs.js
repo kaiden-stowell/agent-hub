@@ -17,6 +17,7 @@ const http = require('http');
 const KNOWN_HUBS = [
   { port: 12790, path: '/api/integration-manifest', label: 'instagram-hub' },
   { port: 12791, path: '/api/integration-manifest', label: 'social-hub' },
+  { port: 12795, path: '/api/integration-manifest', label: 'claude-editor' },
 ];
 
 let _cache = [];         // latest successful manifests
