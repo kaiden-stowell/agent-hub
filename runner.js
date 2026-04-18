@@ -100,6 +100,18 @@ function buildIntegrationsContext() {
   return `\n\n---\n# Connected Integrations\nYou have access to the following integrations. Use them via Bash (curl) when relevant to the task.\n\n${lines}\n`;
 }
 
+// ── Per-agent identity markdown (agent.md / soul.md / brand.md) ─────────────
+// These are user-authored blocks that shape the agent's role, voice, and brand.
+// Injected into the system prompt before every run or chat.
+function buildAgentIdentityContext(agent) {
+  const blocks = [];
+  if (agent?.agent_md?.trim()) blocks.push(`## agent.md\n${agent.agent_md.trim()}`);
+  if (agent?.soul_md?.trim())  blocks.push(`## soul.md\n${agent.soul_md.trim()}`);
+  if (agent?.brand_md?.trim()) blocks.push(`## brand.md\n${agent.brand_md.trim()}`);
+  if (!blocks.length) return '';
+  return `\n\n---\n# Identity\nThese documents define who you are, how you speak, and what you represent. Follow them in everything you do.\n\n${blocks.join('\n\n---\n\n')}\n`;
+}
+
 // ── Per-agent webhooks / custom HTTP integrations ───────────────────────────
 // Injects a markdown block listing the agent's own custom endpoints (URL, auth, usage hint).
 // The agent calls these via Bash (curl) to pull data like "Shopify stock", "Stripe balance", etc.
@@ -263,7 +275,8 @@ function startRun(agentId, prompt, opts = {}) {
     : agent;
   const skillsCtx = skills.buildSkillsContext(runAgent);
   if (skillsCtx) console.log(`[runner] Injecting skills context (${skillsCtx.length} chars) for agent ${agent.name}`);
-  const integrationsCtx = buildIntegrationsContext() + buildAgentWebhooksContext(agent);
+  const identityCtx     = buildAgentIdentityContext(agent);
+  const integrationsCtx = buildIntegrationsContext() + buildAgentWebhooksContext(agent) + identityCtx;
   if (integrationsCtx) console.log(`[runner] Injecting integrations context for agent ${agent.name}`);
 
   // When skills are attached, add a directive to follow them
@@ -387,7 +400,7 @@ function sendChatMessage(agentId, userText) {
   const history = (chat?.messages || []).filter(m => m.id !== assistantId);
 
   const skillsCtxChat = skills.buildSkillsContext(agent);
-  const integrationsCtxChat = buildIntegrationsContext() + buildAgentWebhooksContext(agent);
+  const integrationsCtxChat = buildIntegrationsContext() + buildAgentWebhooksContext(agent) + buildAgentIdentityContext(agent);
   let systemLines;
   if (agent.role === 'ceo' && getCEOContextPrompt) {
     systemLines = agent.prompt + skillsCtxChat + integrationsCtxChat + getCEOContextPrompt(agent.board_id) +

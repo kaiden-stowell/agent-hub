@@ -53,7 +53,7 @@ mkdir -p "$DEST"
 FILES=(
   server.js db.js runner.js coo.js ceo.js cron-scheduler.js
   imessage.js telegram.js skills-manager.js local-hubs.js
-  package.json package-lock.json version.json
+  package.json package-lock.json version.json changelog.json
   start.sh update.sh
 )
 

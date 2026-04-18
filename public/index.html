@@ -90,7 +90,7 @@
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         </button>
       </div>
-      <div class="version-label" id="version-label"></div>
+      <div class="version-label" id="version-label" onclick="openChangelog()" title="Click to see what's new" style="cursor:pointer"></div>
     </div>
   </nav>
 
@@ -710,6 +710,23 @@
         </div>
 
         <div class="form-group" style="border-top:1px solid var(--border,#2a2a2a);padding-top:16px;margin-top:16px">
+          <label>Identity documents</label>
+          <p style="margin:0 0 10px;font-size:12px;opacity:0.7">Three optional markdown blocks injected into the agent's context before every run or chat. Use them to shape who this agent is, how it speaks, and what brand it represents.</p>
+          <div class="form-group">
+            <label style="font-size:12px;opacity:0.85">agent.md — role &amp; responsibilities</label>
+            <textarea id="f-agent-md" rows="3" placeholder="You are a senior backend engineer specialized in Postgres. You write production-ready code, prefer boring tech, and always consider rollback plans."></textarea>
+          </div>
+          <div class="form-group">
+            <label style="font-size:12px;opacity:0.85">soul.md — personality &amp; voice</label>
+            <textarea id="f-soul-md" rows="3" placeholder="Direct, dry, slightly impatient with fluff. Never apologizes unnecessarily. Uses plain English, not jargon. Friendly but not chatty."></textarea>
+          </div>
+          <div class="form-group">
+            <label style="font-size:12px;opacity:0.85">brand.md — brand voice &amp; guidelines</label>
+            <textarea id="f-brand-md" rows="3" placeholder="Brand name: Acme. Tone: confident, not arrogant. Never use emojis. Always end external messages with &quot;— the Acme team&quot;. Avoid superlatives like &quot;best&quot; or &quot;amazing&quot;."></textarea>
+          </div>
+        </div>
+
+        <div class="form-group" style="border-top:1px solid var(--border,#2a2a2a);padding-top:16px;margin-top:16px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
             <label style="margin:0">MCP servers</label>
             <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:normal">
@@ -1025,6 +1042,17 @@
       <button class="btn btn-primary" onclick="submitActivation()">Activate Skill</button>
     </div>
     <input type="hidden" id="activate-skill-id" />
+  </div>
+</div>
+
+<!-- CHANGELOG MODAL -->
+<div id="changelog-modal" class="modal-overlay hidden" onclick="closeOnOverlay(event,'changelog-modal')">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:520px">
+    <div class="modal-header">
+      <h2 id="changelog-title">What's new</h2>
+      <button class="modal-close" onclick="document.getElementById('changelog-modal').classList.add('hidden')">×</button>
+    </div>
+    <div id="changelog-body" style="max-height:60vh;overflow-y:auto;padding-right:4px"></div>
   </div>
 </div>
 

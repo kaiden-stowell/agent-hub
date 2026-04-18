@@ -178,6 +178,32 @@ function renderSwatches() {
   ).join('');
 }
 
+async function openChangelog() {
+  const modal = document.getElementById('changelog-modal');
+  const body  = document.getElementById('changelog-body');
+  const title = document.getElementById('changelog-title');
+  body.innerHTML = '<div class="empty-hint">Loading…</div>';
+  modal.classList.remove('hidden');
+  try {
+    const entries = await api('/changelog');
+    if (!entries.length) { body.innerHTML = '<div class="empty-hint">No changelog yet.</div>'; return; }
+    const current = window._currentVersion || entries[0].version;
+    title.textContent = `What's new in v${current}`;
+    body.innerHTML = entries.map((e, i) => `
+      <div class="changelog-entry ${i === 0 ? 'current' : ''}">
+        <div class="changelog-head">
+          <span class="changelog-version">v${esc(e.version)}</span>
+          ${e.released_at ? `<span class="changelog-date">${esc(e.released_at)}</span>` : ''}
+        </div>
+        ${e.title ? `<div class="changelog-subtitle">${esc(e.title)}</div>` : ''}
+        <ul class="changelog-list">${(e.changes || []).map(c => `<li>${esc(c)}</li>`).join('')}</ul>
+      </div>
+    `).join('');
+  } catch (err) {
+    body.innerHTML = `<div class="empty-hint">Could not load changelog: ${esc(err.message)}</div>`;
+  }
+}
+
 function openSettings() {
   document.getElementById('settings-modal').classList.remove('hidden');
   renderSwatches();
@@ -418,7 +444,7 @@ function agentCard(a) {
   const roleTag = isCEO ? ' <span class="lock-badge ceo-tag">CEO</span>' : isCOO ? ' <span class="lock-badge">COO</span>' : '';
   return `<div class="agent-card ${isCEO ? 'ceo' : isCOO ? 'coo' : ''} ${a.status === 'running' ? 'running' : ''}" id="ac-${a.id}">
     <div class="agent-card-header">
-      <div class="agent-name">${agentAvatar(a, 'avatar-sm')} ${esc(a.name)}${roleTag}</div>
+      <div class="agent-name"><span class="heartbeat-dot" title="Heartbeat — agent is registered and the hub is alive"></span>${agentAvatar(a, 'avatar-sm')} ${esc(a.name)}${roleTag}</div>
       ${statusHtml}
     </div>
     ${a.description ? `<div class="agent-desc">${esc(a.description)}</div>` : ''}
@@ -528,6 +554,9 @@ function showCreateAgent() {
   document.getElementById('f-id').value      = '';
   document.getElementById('f-workdir').value = userHomeDir;
   document.getElementById('f-emoji').value   = '';
+  document.getElementById('f-agent-md').value = '';
+  document.getElementById('f-soul-md').value  = '';
+  document.getElementById('f-brand-md').value = '';
   document.getElementById('f-mcp-enabled').checked = false;
   renderMcpServers([]);
   renderWebhooks([]);
@@ -544,6 +573,9 @@ async function openEditAgent(agentId) {
   document.getElementById('f-name').value        = a.name;
   document.getElementById('f-description').value = a.description || '';
   document.getElementById('f-emoji').value       = a.emoji || '';
+  document.getElementById('f-agent-md').value    = a.agent_md || '';
+  document.getElementById('f-soul-md').value     = a.soul_md  || '';
+  document.getElementById('f-brand-md').value    = a.brand_md || '';
   document.getElementById('f-prompt').value      = a.prompt;
   document.getElementById('f-workdir').value     = a.workdir || userHomeDir;
   document.getElementById('f-model').value       = a.model || 'claude-sonnet-4-6';
@@ -567,6 +599,9 @@ async function saveAgent(e) {
     name: document.getElementById('f-name').value.trim(),
     description: document.getElementById('f-description').value.trim(),
     emoji: document.getElementById('f-emoji').value.trim(),
+    agent_md: document.getElementById('f-agent-md').value.trim(),
+    soul_md:  document.getElementById('f-soul-md').value.trim(),
+    brand_md: document.getElementById('f-brand-md').value.trim(),
     prompt: document.getElementById('f-prompt').value.trim(),
     workdir: document.getElementById('f-workdir').value.trim() || userHomeDir,
     model: document.getElementById('f-model').value,
@@ -1552,7 +1587,7 @@ function deskCard(agent, isWorking, currentTask, isChatting = false) {
     </div>
     <div class="desk-surface"></div>
     <div class="desk-info">
-      <div class="desk-name">${esc(agent.name)} ${roleTag}</div>
+      <div class="desk-name"><span class="heartbeat-dot"></span>${esc(agent.name)} ${roleTag}</div>
       <div class="desk-status ${isChatting ? 'status-chatting' : isWorking ? 'status-working' : 'status-idle'}">
         <span class="desk-dot"></span>${statusTxt}
       </div>
@@ -2028,6 +2063,9 @@ function fmtDate(iso) { return new Date(iso).toLocaleDateString(undefined, { mon
     const el = document.getElementById('version-label');
     if (el) el.textContent = 'v' + v.version;
   }).catch(() => {});
+
+  // Cache current version for the changelog heading
+  api('/version').then(v => { window._currentVersion = v.version; }).catch(() => {});
   checkForUpdate();
   setInterval(checkForUpdate, 5 * 60 * 1000); // check every 5 min
   setInterval(() => { refreshStats(); refreshActiveRuns(); refreshActiveTasks(); }, 15000);

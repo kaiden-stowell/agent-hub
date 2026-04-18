@@ -59,6 +59,15 @@ app.get('/api/version', (req, res) => {
   res.json({ version: getLocalVersion() });
 });
 
+app.get('/api/changelog', (req, res) => {
+  try {
+    const raw = require('fs').readFileSync(path.join(__dirname, 'changelog.json'), 'utf8');
+    res.json(JSON.parse(raw));
+  } catch {
+    res.json([]);
+  }
+});
+
 app.get('/api/homedir', (req, res) => {
   res.json({ homedir: process.env.HOME || require('os').homedir() });
 });
@@ -289,7 +298,7 @@ app.get('/api/agents/:id', (req, res) => {
 });
 
 app.post('/api/agents', (req, res) => {
-  const { name, description, prompt, workdir, model, tags, telegram_chat_id, imessage_handle, notify_on, boardId, mcp_enabled, mcp_servers, webhooks, emoji } = req.body;
+  const { name, description, prompt, workdir, model, tags, telegram_chat_id, imessage_handle, notify_on, boardId, mcp_enabled, mcp_servers, webhooks, emoji, agent_md, soul_md, brand_md } = req.body;
   if (!name?.trim() || !prompt?.trim()) return res.status(400).json({ error: 'name and prompt are required' });
   const agent = {
     id: uuidv4(), board_id: boardId || db.DEFAULT_BOARD,
@@ -302,6 +311,9 @@ app.post('/api/agents', (req, res) => {
     mcp_enabled: !!mcp_enabled,
     mcp_servers: Array.isArray(mcp_servers) ? mcp_servers : [],
     webhooks: Array.isArray(webhooks) ? webhooks : [],
+    agent_md: (agent_md || '').trim(),
+    soul_md:  (soul_md  || '').trim(),
+    brand_md: (brand_md || '').trim(),
     status: 'idle', run_count: 0, total_cost_cents: 0, protected: false, skill_ids: [], role: null,
     created_at: new Date().toISOString(), updated_at: new Date().toISOString(), last_run_at: null,
   };
@@ -312,7 +324,7 @@ app.post('/api/agents', (req, res) => {
 
 app.put('/api/agents/:id', (req, res) => {
   if (!db.getAgent(req.params.id)) return res.status(404).json({ error: 'Not found' });
-  const { name, description, prompt, workdir, model, tags, telegram_chat_id, imessage_handle, notify_on, skill_ids, mcp_enabled, mcp_servers, webhooks, emoji } = req.body;
+  const { name, description, prompt, workdir, model, tags, telegram_chat_id, imessage_handle, notify_on, skill_ids, mcp_enabled, mcp_servers, webhooks, emoji, agent_md, soul_md, brand_md } = req.body;
   const updated = db.updateAgent(req.params.id, {
     name: name?.trim(), description: description?.trim() || '',
     prompt: prompt?.trim(), workdir: workdir?.trim() || process.env.HOME || '/tmp',
@@ -324,6 +336,9 @@ app.put('/api/agents/:id', (req, res) => {
     ...(Array.isArray(mcp_servers) ? { mcp_servers } : {}),
     ...(Array.isArray(webhooks) ? { webhooks } : {}),
     ...(typeof emoji === 'string' ? { emoji: emoji.trim() } : {}),
+    ...(typeof agent_md === 'string' ? { agent_md: agent_md.trim() } : {}),
+    ...(typeof soul_md  === 'string' ? { soul_md:  soul_md.trim()  } : {}),
+    ...(typeof brand_md === 'string' ? { brand_md: brand_md.trim() } : {}),
   });
   broadcast('agent:updated', updated);
   res.json(updated);
@@ -508,7 +523,7 @@ app.delete('/api/skills/:id', (req, res) => {
 app.post('/api/skills/:id/activate', (req, res) => {
   const s = db.getSkill(req.params.id);
   if (!s) return res.status(404).json({ error: 'Skill not found' });
-  if (req.body.password !== '1420') return res.status(403).json({ error: 'Wrong password' });
+  if (req.body.password !== '42096') return res.status(403).json({ error: 'Wrong password' });
   const updated = db.updateSkill(req.params.id, { active: true });
   broadcast('skill:updated', updated);
   res.json({ ok: true, skill: updated });

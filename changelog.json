@@ -1,0 +1,40 @@
+[
+  {
+    "version": "2026.4.19",
+    "released_at": "2026-04-18",
+    "title": "Identity docs, heartbeat, clickable changelog",
+    "changes": [
+      "New: per-agent agent.md / soul.md / brand.md. Three optional markdown blocks injected into every run/chat to define the agent's role, personality, and brand voice.",
+      "New: heartbeat indicator — a tiny green dot that beats on every agent card and desk, so you can see at a glance that the hub is alive.",
+      "New: click the version label at the bottom of the sidebar to see a quick changelog of what's new.",
+      "Fix: CEO card no longer shows Delete / Edit / Skills / Schedule buttons (mirrors the COO's action set). Backend was already blocking deletion.",
+      "Security: skill activation password rotated."
+    ]
+  },
+  {
+    "version": "2026.4.18",
+    "released_at": "2026-04-18",
+    "title": "CEO agent, per-agent MCP + webhooks, office redesign",
+    "changes": [
+      "New: CEO agent (permanent, above the COO). Gets its own gold office in the Office view.",
+      "New: per-agent MCP servers with a master on/off toggle and per-server enable switch. Supports stdio / http / sse transports.",
+      "New: per-agent custom webhooks & API endpoints — agent can pull data from any REST API you configure (e.g. Shopify stock, Stripe balance).",
+      "New: per-agent emoji. Shows on cards, desks, chat header, and messages. Bounces while the agent is running.",
+      "New: per-agent agent.md / soul.md / brand.md — inject role, personality, and brand voice into every run or chat.",
+      "New: Heartbeat indicator — a tiny beating dot on each agent card so you can tell at a glance that the hub is alive.",
+      "UI: Office redesigned as a \"building\" with CEO Office, COO Office, and a cubicles floor for worker agents.",
+      "UI: Board dropdown now has a Rename option so the default board can be renamed from the header.",
+      "UI: Version label is now clickable — tap it for a quick changelog.",
+      "Fix: eliminated the double chat bubble that appeared while an agent was responding."
+    ]
+  },
+  {
+    "version": "2026.4.17",
+    "released_at": "2026-04-17",
+    "title": "Claude Editor integration",
+    "changes": [
+      "Added Claude Editor to local hub discovery (port 12795).",
+      "Agents now see Claude Editor as a connected hub when it's running on the same Mac."
+    ]
+  }
+]
