@@ -16,6 +16,7 @@ const imessage  = require('./imessage');
 const localHubs = require('./local-hubs');
 const scheduler = require('./cron-scheduler');
 const coo       = require('./coo');
+const ceo       = require('./ceo');
 const skillsMgr = require('./skills-manager');
 
 const HOST = process.env.HOST || '127.0.0.1';
@@ -43,6 +44,7 @@ function broadcast(event, data) {
 
 runner.setBroadcast(broadcast);
 runner.setCOOHelpers(coo.getCOOContextPrompt);
+runner.setCEOHelpers(ceo.getCEOContextPrompt);
 telegram.setBroadcast(broadcast);
 scheduler.setBroadcast(broadcast);
 imessage.setBroadcast(broadcast);
@@ -243,7 +245,8 @@ app.post('/api/boards', (req, res) => {
     created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
   };
   db.insertBoard(board);
-  // Seed a COO for the new board
+  // Seed a CEO and COO for the new board
+  ceo.ensureCEO(board.id, board.name);
   coo.ensureCOO(board.id, board.name);
   broadcast('board:created', board);
   res.status(201).json(board);
@@ -271,9 +274,10 @@ app.delete('/api/boards/:id', (req, res) => {
 // ── Agents ─────────────────────────────────────────────────────────────────
 app.get('/api/agents', (req, res) => {
   const { boardId } = req.query;
+  const rank = a => a.role === 'ceo' ? 0 : a.role === 'coo' ? 1 : a.protected ? 2 : 3;
   res.json(db.getAgents(boardId ? { board_id: boardId } : {}).sort((a, b) => {
-    if (a.protected && !b.protected) return -1;
-    if (!a.protected && b.protected) return 1;
+    const ra = rank(a), rb = rank(b);
+    if (ra !== rb) return ra - rb;
     return (a.name || '').localeCompare(b.name || '');
   }));
 });
@@ -285,16 +289,20 @@ app.get('/api/agents/:id', (req, res) => {
 });
 
 app.post('/api/agents', (req, res) => {
-  const { name, description, prompt, workdir, model, tags, telegram_chat_id, imessage_handle, notify_on, boardId } = req.body;
+  const { name, description, prompt, workdir, model, tags, telegram_chat_id, imessage_handle, notify_on, boardId, mcp_enabled, mcp_servers, webhooks, emoji } = req.body;
   if (!name?.trim() || !prompt?.trim()) return res.status(400).json({ error: 'name and prompt are required' });
   const agent = {
     id: uuidv4(), board_id: boardId || db.DEFAULT_BOARD,
     name: name.trim(), description: description?.trim() || '',
+    emoji: (emoji || '').trim(),
     prompt: prompt.trim(), workdir: workdir?.trim() || process.env.HOME || '/tmp',
     model: model || 'claude-sonnet-4-6', tags: tags || '[]',
     telegram_chat_id: telegram_chat_id || null, imessage_handle: imessage_handle || null,
     notify_on: notify_on || '["done","error"]',
-    status: 'idle', run_count: 0, total_cost_cents: 0, protected: false, skill_ids: [],
+    mcp_enabled: !!mcp_enabled,
+    mcp_servers: Array.isArray(mcp_servers) ? mcp_servers : [],
+    webhooks: Array.isArray(webhooks) ? webhooks : [],
+    status: 'idle', run_count: 0, total_cost_cents: 0, protected: false, skill_ids: [], role: null,
     created_at: new Date().toISOString(), updated_at: new Date().toISOString(), last_run_at: null,
   };
   db.insertAgent(agent);
@@ -304,7 +312,7 @@ app.post('/api/agents', (req, res) => {
 
 app.put('/api/agents/:id', (req, res) => {
   if (!db.getAgent(req.params.id)) return res.status(404).json({ error: 'Not found' });
-  const { name, description, prompt, workdir, model, tags, telegram_chat_id, imessage_handle, notify_on, skill_ids } = req.body;
+  const { name, description, prompt, workdir, model, tags, telegram_chat_id, imessage_handle, notify_on, skill_ids, mcp_enabled, mcp_servers, webhooks, emoji } = req.body;
   const updated = db.updateAgent(req.params.id, {
     name: name?.trim(), description: description?.trim() || '',
     prompt: prompt?.trim(), workdir: workdir?.trim() || process.env.HOME || '/tmp',
@@ -312,6 +320,10 @@ app.put('/api/agents/:id', (req, res) => {
     telegram_chat_id: telegram_chat_id || null, imessage_handle: imessage_handle || null,
     notify_on: notify_on || '["done","error"]',
     ...(Array.isArray(skill_ids) ? { skill_ids } : {}),
+    ...(typeof mcp_enabled === 'boolean' ? { mcp_enabled } : {}),
+    ...(Array.isArray(mcp_servers) ? { mcp_servers } : {}),
+    ...(Array.isArray(webhooks) ? { webhooks } : {}),
+    ...(typeof emoji === 'string' ? { emoji: emoji.trim() } : {}),
   });
   broadcast('agent:updated', updated);
   res.json(updated);
@@ -800,8 +812,13 @@ app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.ht
 // ── Start ──────────────────────────────────────────────────────────────────
 server.listen(PORT, HOST, () => {
   console.log(`\n  Agent Hub → http://${HOST}:${PORT}\n`);
-  // Seed a COO for every existing board
-  db.getBoards().forEach(b => coo.ensureCOO(b.id, b.name));
+  // Seed a CEO + COO for every existing board; backfill role field on legacy COOs
+  db.getBoards().forEach(b => {
+    ceo.ensureCEO(b.id, b.name);
+    coo.ensureCOO(b.id, b.name);
+    const cooAgent = db.getAgent(coo.getCOOId(b.id));
+    if (cooAgent && cooAgent.role !== 'coo') db.updateAgent(cooAgent.id, { role: 'coo' });
+  });
   scheduler.init();
   telegram.init();
   imessage.init();

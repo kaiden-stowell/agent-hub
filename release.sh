@@ -51,8 +51,8 @@ mkdir -p "$DEST"
 
 # Copy application files (not data, node_modules, versions, or .env)
 FILES=(
-  server.js db.js runner.js coo.js cron-scheduler.js
-  imessage.js telegram.js skills-manager.js
+  server.js db.js runner.js coo.js ceo.js cron-scheduler.js
+  imessage.js telegram.js skills-manager.js local-hubs.js
   package.json package-lock.json version.json
   start.sh update.sh
 )

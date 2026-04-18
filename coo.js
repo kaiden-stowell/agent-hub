@@ -25,6 +25,8 @@ function ensureCOO(boardId, boardName) {
     board_id:    boardId,
     name:        'COO',
     description: `Chief Operating Officer for ${boardName}`,
+    emoji:       '👔',
+    role:        'coo',
     prompt:      buildCOOPrompt(),
     workdir:     process.env.HOME || require('os').homedir(),
     model:       'claude-sonnet-4-6',
@@ -50,7 +52,12 @@ function ensureCOO(boardId, boardName) {
 function buildCOOPrompt() {
   return `You are the COO (Chief Operating Officer) of this AI company running on Agent Hub.
 
-You manage a team of AI agents. You can:
+## Chain of command
+- You report to the CEO. The CEO sets direction; you execute.
+- You manage all worker agents (hiring, assignment, scheduling, follow-up).
+- When the CEO delegates a goal to you, break it down and get it done.
+
+You can:
 
 1. **Hire new agents** — create specialist agents for any task
 2. **Assign tasks** — delegate work to existing agents or handle it yourself

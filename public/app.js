@@ -13,13 +13,15 @@ let agents = [];
 let currentDetailRunId = null;
 let currentChatAgentId = null;
 let chatIsStreaming     = false;
+let pendingChatTempId   = null;
 
 // Live output buffer for office desk screens (agentId -> string)
 const agentLiveOutput = {};
 
 // ── Board helpers ──────────────────────────────────────────────────────────
 function currentBoard() { return boards.find(b => b.id === currentBoardId) || boards[0]; }
-function currentCOO()   { return agents.find(a => a.protected); }
+function currentCOO()   { return agents.find(a => a.role === 'coo') || agents.find(a => a.protected && a.role !== 'ceo'); }
+function currentCEO()   { return agents.find(a => a.role === 'ceo'); }
 
 // Append ?boardId= to board-scoped GET paths
 function bUrl(path) {
@@ -103,6 +105,10 @@ async function handleWS({ event, data }) {
     if (data.agentId === currentChatAgentId) {
       chatIsStreaming = true; updateChatSendBtn();
       let bubble = document.getElementById('msg-' + data.messageId);
+      if (!bubble && pendingChatTempId) {
+        const tmp = document.getElementById('msg-' + pendingChatTempId);
+        if (tmp) { tmp.id = 'msg-' + data.messageId; bubble = tmp; pendingChatTempId = null; }
+      }
       if (!bubble) bubble = addChatBubble({ id: data.messageId, role: 'assistant', content: '', streaming: true });
     }
   }
@@ -236,6 +242,7 @@ function renderBoardSwitcher() {
           ${b.id === currentBoardId ? '<svg viewBox="0 0 12 12" fill="currentColor" width="12"><path d="M2 6l3 4 5-7"/></svg>' : ''}
         </div>`).join('')}
       <div class="board-menu-sep"></div>
+      <div class="board-menu-item" onclick="showRenameBoard()">✎ Rename "${esc(board?.name || '')}"</div>
       <div class="board-menu-item" onclick="showNewBoard()">＋ New board</div>
       ${boards.length > 1 && board?.id !== 'board-default'
         ? `<div class="board-menu-item danger" onclick="deleteCurrentBoard()">✕ Delete "${esc(board?.name)}"</div>`
@@ -365,8 +372,17 @@ function taskMiniCard(t) {
 }
 
 // ── Agent rendering ────────────────────────────────────────────────────────
+function agentAvatar(a, sizeClass = '') {
+  const role = a.role || (a.protected ? 'coo' : null);
+  const fallback = role === 'ceo' ? '👑' : role === 'coo' ? '👔' : (a.name || 'A').charAt(0).toUpperCase();
+  const emoji = (a.emoji || '').trim() || fallback;
+  const working = a.status === 'running';
+  return `<span class="agent-avatar ${sizeClass} ${working ? 'agent-avatar-working' : ''}">${esc(emoji)}</span>`;
+}
+
 function agentCard(a) {
-  const isCOO   = !!a.protected;
+  const isCOO   = !!a.protected && a.role !== 'ceo';
+  const isCEO   = a.role === 'ceo';
   const tags    = JSON.parse(a.tags || '[]').map(t => `<span class="tag">${esc(t)}</span>`).join('');
   const channels = [a.telegram_chat_id && '<span class="ch-tag">Telegram</span>', a.imessage_handle && '<span class="ch-tag">iMessage</span>'].filter(Boolean).join('');
   const model   = (a.model || '').replace('claude-', '').replace('-4-6', ' 4.6').replace('-4-5-20251001', ' 4.5');
@@ -395,9 +411,10 @@ function agentCard(a) {
        <button class="btn btn-ghost btn-sm" onclick="viewAgentRuns('${a.id}')">Runs</button>
        <button class="btn btn-danger btn-sm" onclick="deleteAgent('${a.id}','${esc(a.name)}')">Delete</button>`;
 
-  return `<div class="agent-card ${isCOO ? 'coo' : ''} ${a.status === 'running' ? 'running' : ''}" id="ac-${a.id}">
+  const roleTag = isCEO ? ' <span class="lock-badge ceo-tag">CEO</span>' : isCOO ? ' <span class="lock-badge">COO</span>' : '';
+  return `<div class="agent-card ${isCEO ? 'ceo' : isCOO ? 'coo' : ''} ${a.status === 'running' ? 'running' : ''}" id="ac-${a.id}">
     <div class="agent-card-header">
-      <div class="agent-name">${isCOO ? '<span class="coo-crown">👔</span>' : ''}${esc(a.name)}${isCOO ? ' <span class="lock-badge">Protected</span>' : ''}</div>
+      <div class="agent-name">${agentAvatar(a, 'avatar-sm')} ${esc(a.name)}${roleTag}</div>
       ${statusHtml}
     </div>
     ${a.description ? `<div class="agent-desc">${esc(a.description)}</div>` : ''}
@@ -506,6 +523,10 @@ function showCreateAgent() {
   document.getElementById('agent-form').reset();
   document.getElementById('f-id').value      = '';
   document.getElementById('f-workdir').value = userHomeDir;
+  document.getElementById('f-emoji').value   = '';
+  document.getElementById('f-mcp-enabled').checked = false;
+  renderMcpServers([]);
+  renderWebhooks([]);
   document.getElementById('agent-advanced').style.display = 'none';
   document.getElementById('agent-advanced-toggle').style.display = '';
   document.getElementById('agent-modal').classList.remove('hidden');
@@ -518,12 +539,16 @@ async function openEditAgent(agentId) {
   document.getElementById('f-id').value          = a.id;
   document.getElementById('f-name').value        = a.name;
   document.getElementById('f-description').value = a.description || '';
+  document.getElementById('f-emoji').value       = a.emoji || '';
   document.getElementById('f-prompt').value      = a.prompt;
   document.getElementById('f-workdir').value     = a.workdir || userHomeDir;
   document.getElementById('f-model').value       = a.model || 'claude-sonnet-4-6';
   document.getElementById('f-telegram').value    = a.telegram_chat_id || '';
   document.getElementById('f-imessage').value    = a.imessage_handle || '';
   document.getElementById('f-tags').value        = JSON.parse(a.tags || '[]').join(', ');
+  document.getElementById('f-mcp-enabled').checked = !!a.mcp_enabled;
+  renderMcpServers(Array.isArray(a.mcp_servers) ? a.mcp_servers : []);
+  renderWebhooks(Array.isArray(a.webhooks) ? a.webhooks : []);
   // Show advanced when editing
   document.getElementById('agent-advanced').style.display = '';
   document.getElementById('agent-advanced-toggle').style.display = 'none';
@@ -537,16 +562,167 @@ async function saveAgent(e) {
   const body = {
     name: document.getElementById('f-name').value.trim(),
     description: document.getElementById('f-description').value.trim(),
+    emoji: document.getElementById('f-emoji').value.trim(),
     prompt: document.getElementById('f-prompt').value.trim(),
     workdir: document.getElementById('f-workdir').value.trim() || userHomeDir,
     model: document.getElementById('f-model').value,
     telegram_chat_id: document.getElementById('f-telegram').value.trim() || null,
     imessage_handle: document.getElementById('f-imessage').value.trim() || null,
     tags: JSON.stringify(tags),
+    mcp_enabled: document.getElementById('f-mcp-enabled').checked,
+    mcp_servers: collectMcpServers(),
+    webhooks: collectWebhooks(),
   };
   await api(id ? '/agents/'+id : '/agents', { method: id ? 'PUT' : 'POST', body: id ? JSON.stringify(body) : bBody(body) });
   closeAgentModal();
   loadDashboard(); renderAgents();
+}
+
+// ── MCP servers (per-agent) ────────────────────────────────────────────────
+function renderMcpServers(servers) {
+  const list = document.getElementById('mcp-servers-list');
+  list.innerHTML = '';
+  (servers || []).forEach(s => list.appendChild(buildMcpServerRow(s)));
+}
+function addMcpServerRow() {
+  document.getElementById('mcp-servers-list').appendChild(buildMcpServerRow({
+    id: 'mcp-'+Date.now(), name: '', transport: 'stdio', command: '', args: [], env: {}, url: '', headers: {}, enabled: true,
+  }));
+}
+function buildMcpServerRow(s) {
+  const row = document.createElement('div');
+  row.className = 'mcp-server-row';
+  row.style.cssText = 'border:1px solid var(--border,#2a2a2a);border-radius:8px;padding:10px;margin-bottom:8px;background:rgba(255,255,255,0.02)';
+  row.dataset.mcpId = s.id || ('mcp-'+Date.now());
+  row.dataset.enabled = s.enabled !== false ? '1' : '0';
+  const transport = s.transport || 'stdio';
+  const argsStr = Array.isArray(s.args) ? s.args.join(' ') : '';
+  const envStr  = s.env  ? Object.entries(s.env).map(([k,v])=>`${k}=${v}`).join('\n')   : '';
+  const hdrStr  = s.headers ? Object.entries(s.headers).map(([k,v])=>`${k}: ${v}`).join('\n') : '';
+  row.innerHTML = `
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+      <input class="mcp-name"  type="text" placeholder="server name (e.g. stripe)" value="${esc(s.name||'')}" style="flex:1" />
+      <select class="mcp-transport" style="width:110px">
+        <option value="stdio" ${transport==='stdio'?'selected':''}>stdio</option>
+        <option value="http"  ${transport==='http' ?'selected':''}>http</option>
+        <option value="sse"   ${transport==='sse'  ?'selected':''}>sse</option>
+      </select>
+      <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:normal;white-space:nowrap">
+        <input type="checkbox" class="mcp-enabled" ${s.enabled!==false?'checked':''} /> on
+      </label>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="this.closest('.mcp-server-row').remove()">×</button>
+    </div>
+    <div class="mcp-stdio" style="display:${transport==='stdio'?'block':'none'}">
+      <input class="mcp-command" type="text" placeholder="command (e.g. npx)" value="${esc(s.command||'')}" style="width:100%;margin-bottom:6px" />
+      <input class="mcp-args"    type="text" placeholder="args (space separated)" value="${esc(argsStr)}" style="width:100%;margin-bottom:6px" />
+      <textarea class="mcp-env" rows="2" placeholder="env (KEY=value per line)" style="width:100%;font-family:monospace;font-size:12px">${esc(envStr)}</textarea>
+    </div>
+    <div class="mcp-http" style="display:${transport!=='stdio'?'block':'none'}">
+      <input class="mcp-url" type="text" placeholder="https://example.com/mcp" value="${esc(s.url||'')}" style="width:100%;margin-bottom:6px" />
+      <textarea class="mcp-headers" rows="2" placeholder="headers (Key: value per line)" style="width:100%;font-family:monospace;font-size:12px">${esc(hdrStr)}</textarea>
+    </div>
+  `;
+  row.querySelector('.mcp-transport').addEventListener('change', ev => {
+    const isStdio = ev.target.value === 'stdio';
+    row.querySelector('.mcp-stdio').style.display = isStdio ? 'block' : 'none';
+    row.querySelector('.mcp-http').style.display  = isStdio ? 'none'  : 'block';
+  });
+  return row;
+}
+function collectMcpServers() {
+  const rows = document.querySelectorAll('#mcp-servers-list .mcp-server-row');
+  const out = [];
+  rows.forEach(row => {
+    const name = row.querySelector('.mcp-name').value.trim();
+    if (!name) return;
+    const transport = row.querySelector('.mcp-transport').value;
+    const enabled = row.querySelector('.mcp-enabled').checked;
+    const base = { id: row.dataset.mcpId, name, transport, enabled };
+    if (transport === 'stdio') {
+      const command = row.querySelector('.mcp-command').value.trim();
+      const argsStr = row.querySelector('.mcp-args').value.trim();
+      const envStr  = row.querySelector('.mcp-env').value;
+      const args = argsStr ? argsStr.split(/\s+/) : [];
+      const env = {};
+      envStr.split('\n').forEach(line => {
+        const m = line.match(/^\s*([^=\s]+)\s*=\s*(.*)$/);
+        if (m) env[m[1]] = m[2];
+      });
+      out.push({ ...base, command, args, env });
+    } else {
+      const url = row.querySelector('.mcp-url').value.trim();
+      const hdrStr = row.querySelector('.mcp-headers').value;
+      const headers = {};
+      hdrStr.split('\n').forEach(line => {
+        const m = line.match(/^\s*([^:\s]+)\s*:\s*(.*)$/);
+        if (m) headers[m[1]] = m[2];
+      });
+      out.push({ ...base, url, headers });
+    }
+  });
+  return out;
+}
+
+// ── Webhooks / custom HTTP integrations (per-agent) ────────────────────────
+function renderWebhooks(hooks) {
+  const list = document.getElementById('webhooks-list');
+  list.innerHTML = '';
+  (hooks || []).forEach(h => list.appendChild(buildWebhookRow(h)));
+}
+function addWebhookRow() {
+  document.getElementById('webhooks-list').appendChild(buildWebhookRow({
+    id: 'wh-'+Date.now(), name: '', url: '', method: 'GET',
+    auth_header: '', auth_value: '', description: '', enabled: true,
+  }));
+}
+function buildWebhookRow(h) {
+  const row = document.createElement('div');
+  row.className = 'webhook-row';
+  row.style.cssText = 'border:1px solid var(--border,#2a2a2a);border-radius:8px;padding:10px;margin-bottom:8px;background:rgba(255,255,255,0.02)';
+  row.dataset.whId = h.id || ('wh-'+Date.now());
+  const method = (h.method || 'GET').toUpperCase();
+  row.innerHTML = `
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+      <input class="wh-name" type="text" placeholder="name (e.g. shopify-stock)" value="${esc(h.name||'')}" style="flex:1" />
+      <select class="wh-method" style="width:90px">
+        <option value="GET"    ${method==='GET'   ?'selected':''}>GET</option>
+        <option value="POST"   ${method==='POST'  ?'selected':''}>POST</option>
+        <option value="PUT"    ${method==='PUT'   ?'selected':''}>PUT</option>
+        <option value="DELETE" ${method==='DELETE'?'selected':''}>DELETE</option>
+      </select>
+      <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:normal;white-space:nowrap">
+        <input type="checkbox" class="wh-enabled" ${h.enabled!==false?'checked':''} /> on
+      </label>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="this.closest('.webhook-row').remove()">×</button>
+    </div>
+    <input class="wh-url" type="text" placeholder="https://api.example.com/path" value="${esc(h.url||'')}" style="width:100%;margin-bottom:6px" />
+    <div style="display:flex;gap:6px;margin-bottom:6px">
+      <input class="wh-auth-header" type="text" placeholder="auth header (e.g. Authorization)" value="${esc(h.auth_header||'')}" style="flex:1" />
+      <input class="wh-auth-value"  type="text" placeholder="auth value (e.g. Bearer sk_xxx)" value="${esc(h.auth_value||'')}" style="flex:2" />
+    </div>
+    <textarea class="wh-desc" rows="2" placeholder="What is this for? (the agent reads this to decide when to call)" style="width:100%;font-size:12px">${esc(h.description||'')}</textarea>
+  `;
+  return row;
+}
+function collectWebhooks() {
+  const rows = document.querySelectorAll('#webhooks-list .webhook-row');
+  const out = [];
+  rows.forEach(row => {
+    const name = row.querySelector('.wh-name').value.trim();
+    const url  = row.querySelector('.wh-url').value.trim();
+    if (!name || !url) return;
+    out.push({
+      id: row.dataset.whId,
+      name,
+      url,
+      method: row.querySelector('.wh-method').value,
+      auth_header: row.querySelector('.wh-auth-header').value.trim(),
+      auth_value:  row.querySelector('.wh-auth-value').value.trim(),
+      description: row.querySelector('.wh-desc').value.trim(),
+      enabled: row.querySelector('.wh-enabled').checked,
+    });
+  });
+  return out;
 }
 async function deleteAgent(agentId, name) {
   if (!confirm(`Delete agent "${name}"? All its runs and chat history will be removed.`)) return;
@@ -824,19 +1000,24 @@ async function deleteCron(id) { if (!confirm('Delete this schedule?')) return; a
 // ── Chat ───────────────────────────────────────────────────────────────────
 async function openChat(agentId) {
   const agent = agents.find(a => a.id === agentId) || await api('/agents/' + agentId);
-  const isCOO = !!agent.protected;
+  const isCOO = !!agent.protected && agent.role !== 'ceo';
   currentChatAgentId = agentId;
   chatIsStreaming = false;
-  const letter = agent.name.charAt(0).toUpperCase();
-  document.getElementById('chat-avatar').textContent     = letter;
+  const role = agent.role || (agent.protected ? 'coo' : null);
+  const isCEO = role === 'ceo';
+  const fallback = isCEO ? '👑' : role === 'coo' ? '👔' : agent.name.charAt(0).toUpperCase();
+  const avatarEmoji = (agent.emoji || '').trim() || fallback;
+  document.getElementById('chat-avatar').textContent     = avatarEmoji;
   document.getElementById('chat-agent-name').textContent = agent.name;
   document.getElementById('chat-agent-role').textContent = agent.description || agent.model || '';
   document.getElementById('chat-agent-id').value         = agentId;
   document.getElementById('chat-input').value            = '';
   updateChatSendBtn();
 
-  // COO special placeholder text
-  if (isCOO) {
+  // Exec-level placeholder text
+  if (isCEO) {
+    document.getElementById('chat-input').placeholder = 'Set direction. Ask the CEO to prioritize, make judgment calls, or delegate to the COO.';
+  } else if (isCOO) {
     document.getElementById('chat-input').placeholder = 'Tell the COO what you need done… (e.g. "Hire a Python developer agent and assign them the scraper task")';
   } else {
     document.getElementById('chat-input').placeholder = 'Message… (Enter to send, Shift+Enter for new line)';
@@ -845,11 +1026,13 @@ async function openChat(agentId) {
   const { messages } = await api('/agents/' + agentId + '/chat');
   const container = document.getElementById('chat-messages');
   if (!messages.length) {
-    const welcome = isCOO
+    const welcome = isCEO
+      ? `I'm your CEO. I set direction and make the calls on ambiguous asks. Tell me what we're trying to accomplish — I'll decide whether to handle it or route it to the COO.`
+      : isCOO
       ? `I'm your COO. Tell me what needs to get done — I'll hire the right agents, assign tasks, and keep things moving. What are we working on?`
       : `Hi! I'm ${esc(agent.name)}. ${esc(agent.description || 'How can I help you today?')}`;
     container.innerHTML = `<div class="chat-welcome" id="chat-welcome">
-      <div class="chat-welcome-avatar">${letter}</div><p>${welcome}</p></div>`;
+      <div class="chat-welcome-avatar">${avatarEmoji}</div><p>${welcome}</p></div>`;
   } else {
     container.innerHTML = '';
     messages.forEach(m => addChatBubble(m, false));
@@ -868,7 +1051,14 @@ function addChatBubble(msg, scroll = true) {
   wrapper.className = `chat-msg ${msg.role}`;
   const av = document.createElement('div');
   av.className = `msg-avatar ${msg.role === 'user' ? 'user-av' : 'agent-av'}`;
-  av.textContent = msg.role === 'user' ? 'Y' : (agents.find(a => a.id === currentChatAgentId)?.name || 'A').charAt(0).toUpperCase();
+  if (msg.role === 'user') {
+    av.textContent = 'Y';
+  } else {
+    const a = agents.find(x => x.id === currentChatAgentId);
+    const role = a?.role || (a?.protected ? 'coo' : null);
+    const fb = role === 'ceo' ? '👑' : role === 'coo' ? '👔' : (a?.name || 'A').charAt(0).toUpperCase();
+    av.textContent = (a?.emoji || '').trim() || fb;
+  }
   const bubble = document.createElement('div');
   bubble.className = 'msg-bubble' + (msg.streaming ? ' streaming' : '');
   bubble.id = 'msg-' + msg.id;
@@ -889,13 +1079,21 @@ async function sendChat() {
   chatIsStreaming = true; updateChatSendBtn();
   addChatBubble({ id: 'u-'+Date.now(), role: 'user', content: message });
   const tempId = 'tmp-'+Date.now();
+  pendingChatTempId = tempId;
   addChatBubble({ id: tempId, role: 'assistant', content: '', streaming: true });
   try {
     const { messageId } = await api('/agents/'+currentChatAgentId+'/chat', { method:'POST', body: JSON.stringify({ message }) });
-    const ph = document.getElementById('msg-'+tempId);
-    if (ph && messageId) ph.id = 'msg-'+messageId;
+    if (messageId) {
+      const real = document.getElementById('msg-'+messageId);
+      if (!real) {
+        const ph = document.getElementById('msg-'+tempId);
+        if (ph) ph.id = 'msg-'+messageId;
+      }
+    }
+    if (pendingChatTempId === tempId) pendingChatTempId = null;
   } catch(err) {
     chatIsStreaming = false; updateChatSendBtn();
+    if (pendingChatTempId === tempId) pendingChatTempId = null;
     const ph = document.getElementById('msg-'+tempId);
     if (ph) { ph.textContent = 'Error: '+err.message; ph.classList.remove('streaming'); }
   }
@@ -1285,31 +1483,45 @@ async function loadOfficeView() {
   for (const r of runs) activeRunsByAgent[r.agent_id] = r;
   const chattingSet = new Set(chattingIds);
 
-  const el = document.getElementById('office-floor');
-  if (!el) return;
+  const ceoEl = document.getElementById('office-ceo');
+  const cooEl = document.getElementById('office-coo');
+  const floor = document.getElementById('office-floor');
+  if (!floor) return;
 
-  if (!agentList.length) {
-    el.innerHTML = `<div class="office-empty">
-      <div style="font-size:64px;margin-bottom:16px">🏢</div>
-      <h3>The office is empty</h3>
-      <p>Create some agents and they'll show up here at their desks.</p>
-      <button class="btn btn-primary" style="margin-top:16px" onclick="showCreateAgent()">Hire your first agent</button>
-    </div>`;
-    return;
-  }
-
-  el.innerHTML = agentList.map(a => {
+  const renderCard = a => {
     const run = activeRunsByAgent[a.id];
     const isChatting = chattingSet.has(a.id);
     const isWorking = !!run || a.status === 'running' || isChatting;
     const task = run ? run.prompt : isChatting ? 'Chatting…' : null;
     return deskCard(a, isWorking, task, isChatting);
-  }).join('');
+  };
+
+  const ceoAgents     = agentList.filter(a => a.role === 'ceo');
+  const cooAgents     = agentList.filter(a => a.role === 'coo' || (a.protected && a.role !== 'ceo'));
+  const workerAgents  = agentList.filter(a => !a.protected && a.role !== 'ceo' && a.role !== 'coo');
+
+  ceoEl.innerHTML = ceoAgents.length ? ceoAgents.map(renderCard).join('') : '<div class="office-empty-mini">No CEO yet.</div>';
+  cooEl.innerHTML = cooAgents.length ? cooAgents.map(renderCard).join('') : '<div class="office-empty-mini">No COO yet.</div>';
+
+  if (!workerAgents.length) {
+    floor.innerHTML = `<div class="office-empty">
+      <div style="font-size:64px;margin-bottom:16px">🪑</div>
+      <h3>The cubicles are empty</h3>
+      <p>Hire some worker agents and they'll show up at their desks.</p>
+      <button class="btn btn-primary" style="margin-top:16px" onclick="showCreateAgent()">Hire an agent</button>
+    </div>`;
+  } else {
+    floor.innerHTML = workerAgents.map(renderCard).join('');
+  }
 }
 
 function deskCard(agent, isWorking, currentTask, isChatting = false) {
-  const initial  = (agent.name || 'A').charAt(0).toUpperCase();
-  const isCOO    = !!agent.protected;
+  const role    = agent.role || (agent.protected ? 'coo' : null);
+  const isCEO   = role === 'ceo';
+  const isCOO   = role === 'coo';
+  const isExec  = isCEO || isCOO;
+  const fallback = isCEO ? '👑' : isCOO ? '👔' : (agent.name || 'A').charAt(0).toUpperCase();
+  const emojiChar = (agent.emoji || '').trim() || fallback;
   const statusTxt = isChatting ? 'Chatting' : isWorking ? 'Working' : 'Available';
   const taskSnip  = currentTask ? currentTask.slice(0, 60) + (currentTask.length > 60 ? '…' : '') : '';
 
@@ -1320,20 +1532,23 @@ function deskCard(agent, isWorking, currentTask, isChatting = false) {
         : `<div class="screen-lines"><span></span><span></span><span></span></div>`)
     : `<div class="screen-idle">···</div>`;
 
-  return `<div class="desk-card ${isWorking ? 'working' : 'idle'}" onclick="${isCOO ? `openCOOChat()` : `openChat('${agent.id}')`}" title="Chat with ${esc(agent.name)}">
+  const roleTag = isCEO ? '<span class="desk-coo-tag ceo-tag">CEO</span>' : isCOO ? '<span class="desk-coo-tag">COO</span>' : '';
+  const onClick = `openChat('${agent.id}')`;
+
+  return `<div class="desk-card ${isWorking ? 'working' : 'idle'} ${isCEO ? 'desk-ceo' : isCOO ? 'desk-coo' : ''}" onclick="${onClick}" title="Chat with ${esc(agent.name)}">
     <div class="desk-monitor">
       <div class="desk-screen ${isWorking ? 'screen-active' : ''}">
         ${screenContent}
       </div>
     </div>
     <div class="desk-person">
-      <div class="desk-head ${isWorking ? 'head-working' : 'head-idle'}">${isCOO ? '👔' : initial}</div>
+      <div class="desk-head desk-head-emoji ${isWorking ? 'head-working' : 'head-idle'}">${esc(emojiChar)}</div>
       <div class="desk-body"></div>
       ${isWorking ? `<div class="desk-typing"><span></span><span></span><span></span></div>` : ''}
     </div>
     <div class="desk-surface"></div>
     <div class="desk-info">
-      <div class="desk-name">${esc(agent.name)}${isCOO ? ' <span class="desk-coo-tag">COO</span>' : ''}</div>
+      <div class="desk-name">${esc(agent.name)} ${roleTag}</div>
       <div class="desk-status ${isChatting ? 'status-chatting' : isWorking ? 'status-working' : 'status-idle'}">
         <span class="desk-dot"></span>${statusTxt}
       </div>

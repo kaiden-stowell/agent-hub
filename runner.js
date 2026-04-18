@@ -7,6 +7,7 @@ const db = require('./db');
 const skills = require('./skills-manager');
 const localHubs = require('./local-hubs');
 let getCOOContextPrompt = null;
+let getCEOContextPrompt = null;
 
 const activeRuns  = new Map(); // runId  -> { proc, agentId }
 const activeChats = new Map(); // agentId -> proc
@@ -19,6 +20,7 @@ function registerNotifier(n, fn) { notifiers[n] = fn; }
 function onChatDone(cb)          { chatDoneListeners.push(cb); }
 function emit(event, data)       { if (broadcast) broadcast(event, data); }
 function setCOOHelpers(ctxFn)    { getCOOContextPrompt = ctxFn; }
+function setCEOHelpers(ctxFn)    { getCEOContextPrompt = ctxFn; }
 
 // ── Integration context ─────────────────────────────────────────────────────
 // Reads .env and builds a context block telling agents what integrations are available
@@ -98,6 +100,32 @@ function buildIntegrationsContext() {
   return `\n\n---\n# Connected Integrations\nYou have access to the following integrations. Use them via Bash (curl) when relevant to the task.\n\n${lines}\n`;
 }
 
+// ── Per-agent webhooks / custom HTTP integrations ───────────────────────────
+// Injects a markdown block listing the agent's own custom endpoints (URL, auth, usage hint).
+// The agent calls these via Bash (curl) to pull data like "Shopify stock", "Stripe balance", etc.
+function buildAgentWebhooksContext(agent) {
+  const hooks = (agent?.webhooks || []).filter(w => w && w.enabled !== false && w.name && w.url);
+  if (!hooks.length) return '';
+
+  const lines = hooks.map(w => {
+    const method = (w.method || 'GET').toUpperCase();
+    const authBits = [];
+    if (w.auth_header && w.auth_value) authBits.push(`Header: ${w.auth_header}: ${w.auth_value}`);
+    const curlParts = [`curl -sS -X ${method}`];
+    if (w.auth_header && w.auth_value) curlParts.push(`-H "${w.auth_header}: ${w.auth_value}"`);
+    curlParts.push(`'${w.url}'`);
+    return [
+      `## ${w.name}`,
+      w.description || '',
+      `${method} ${w.url}`,
+      ...authBits,
+      `Example: ${curlParts.join(' ')}`,
+    ].filter(Boolean).join('\n');
+  }).join('\n\n---\n\n');
+
+  return `\n\n---\n# Agent Webhooks\nThese endpoints are configured for this agent. Use curl via Bash to pull data when the user asks for it.\n\n${lines}\n`;
+}
+
 // ── Find claude binary ───────────────────────────────────────────────────────
 function findClaude() {
   if (process.env.CLAUDE_BIN && fs.existsSync(process.env.CLAUDE_BIN))
@@ -153,15 +181,55 @@ function parseStreamLines(raw) {
 }
 
 // ── Common spawn args ────────────────────────────────────────────────────────
-function claudeArgs(model, prompt) {
-  return [
+function claudeArgs(model, prompt, mcpConfigPath) {
+  const args = [
     '--print',
     '--output-format', 'stream-json',
     '--verbose',                          // required for stream-json in Claude Code 2.x
     '--model', model || 'claude-sonnet-4-6',
     '--dangerously-skip-permissions',
-    prompt,
   ];
+  if (mcpConfigPath) args.push('--mcp-config', mcpConfigPath);
+  args.push(prompt);
+  return args;
+}
+
+// ── Per-agent MCP config ─────────────────────────────────────────────────────
+// Writes a temp JSON config for Claude CLI's --mcp-config flag and returns its path,
+// or null if the agent has no enabled MCP servers. Caller is responsible for cleanup.
+function buildMcpConfigFile(agent) {
+  if (!agent.mcp_enabled) return null;
+  const servers = (agent.mcp_servers || []).filter(s => s && s.enabled !== false && s.name);
+  if (!servers.length) return null;
+
+  const mcpServers = {};
+  for (const s of servers) {
+    const entry = {};
+    if (s.transport === 'http' || s.transport === 'sse') {
+      if (!s.url) continue;
+      entry.type = s.transport;
+      entry.url = s.url;
+      if (s.headers && Object.keys(s.headers).length) entry.headers = s.headers;
+    } else {
+      if (!s.command) continue;
+      entry.command = s.command;
+      if (Array.isArray(s.args) && s.args.length) entry.args = s.args;
+      if (s.env && Object.keys(s.env).length) entry.env = s.env;
+    }
+    mcpServers[s.name] = entry;
+  }
+  if (!Object.keys(mcpServers).length) return null;
+
+  const tmpDir = path.join(__dirname, 'data', 'mcp-tmp');
+  if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+  const file = path.join(tmpDir, `mcp-${agent.id}-${Date.now()}.json`);
+  fs.writeFileSync(file, JSON.stringify({ mcpServers }, null, 2));
+  return file;
+}
+
+function cleanupMcpConfig(file) {
+  if (!file) return;
+  try { fs.unlinkSync(file); } catch {}
 }
 
 // ── Background Run ───────────────────────────────────────────────────────────
@@ -195,7 +263,7 @@ function startRun(agentId, prompt, opts = {}) {
     : agent;
   const skillsCtx = skills.buildSkillsContext(runAgent);
   if (skillsCtx) console.log(`[runner] Injecting skills context (${skillsCtx.length} chars) for agent ${agent.name}`);
-  const integrationsCtx = buildIntegrationsContext();
+  const integrationsCtx = buildIntegrationsContext() + buildAgentWebhooksContext(agent);
   if (integrationsCtx) console.log(`[runner] Injecting integrations context for agent ${agent.name}`);
 
   // When skills are attached, add a directive to follow them
@@ -203,24 +271,28 @@ function startRun(agentId, prompt, opts = {}) {
     ? '\n\nIMPORTANT: You have been given Skills & Knowledge above. Follow those instructions exactly — execute the steps described in the skill directly. Do not delegate, do not ask for clarification, just do what the skill says.\n\n---\n\n'
     : '\n\n---\n\n';
 
-  if (agent.protected && getCOOContextPrompt && !skillsCtx) {
+  if (agent.role === 'ceo' && getCEOContextPrompt && !skillsCtx) {
+    fullPrompt = agent.prompt + integrationsCtx + getCEOContextPrompt(agent.board_id) + '\n\n---\n\n' + prompt;
+  } else if (agent.protected && agent.role !== 'ceo' && getCOOContextPrompt && !skillsCtx) {
     // COO without skills — normal management mode
     fullPrompt = agent.prompt + integrationsCtx + getCOOContextPrompt(agent.board_id) + '\n\n---\n\n' + prompt;
   } else if (agent.protected && skillsCtx) {
-    // COO with skills — skip management context, focus on skill execution
+    // Exec with skills — skip management context, focus on skill execution
     fullPrompt = `You are ${agent.name}. Execute the following task using the skills provided.` + skillsCtx + integrationsCtx + skillDirective + prompt;
   } else {
     const systemCtx = [agent.prompt, agent.description ? `(${agent.description})` : ''].filter(Boolean).join('\n');
     fullPrompt = (systemCtx ? systemCtx : '') + skillsCtx + integrationsCtx + skillDirective + prompt;
   }
 
-  const proc = spawn(CLAUDE_BIN, claudeArgs(agent.model, fullPrompt), {
+  const mcpConfigPath = buildMcpConfigFile(agent);
+  if (mcpConfigPath) console.log(`[runner] MCP config for ${agent.name}: ${mcpConfigPath}`);
+  const proc = spawn(CLAUDE_BIN, claudeArgs(agent.model, fullPrompt, mcpConfigPath), {
     cwd: workdir,
     env: { ...process.env, FORCE_COLOR: '0', NO_COLOR: '1' },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 
-  activeRuns.set(runId, { proc, agentId });
+  activeRuns.set(runId, { proc, agentId, mcpConfigPath });
   let outputBuf = '';
   let totalCost = 0;
 
@@ -246,6 +318,7 @@ function startRun(agentId, prompt, opts = {}) {
 
   proc.on('close', code => {
     activeRuns.delete(runId);
+    cleanupMcpConfig(mcpConfigPath);
     const status = code === 0 ? 'done' : 'error';
     db.updateRun(runId, { status, exit_code: code, finished_at: new Date().toISOString() });
     db.updateAgent(agentId, { status: 'idle' });
@@ -264,6 +337,7 @@ function startRun(agentId, prompt, opts = {}) {
 
   proc.on('error', err => {
     activeRuns.delete(runId);
+    cleanupMcpConfig(mcpConfigPath);
     const msg = `Failed to start claude: ${err.message}\nBinary path: ${CLAUDE_BIN}`;
     db.updateRun(runId, { status: 'error', output: msg, finished_at: new Date().toISOString() });
     db.updateAgent(agentId, { status: 'idle' });
@@ -313,9 +387,12 @@ function sendChatMessage(agentId, userText) {
   const history = (chat?.messages || []).filter(m => m.id !== assistantId);
 
   const skillsCtxChat = skills.buildSkillsContext(agent);
-  const integrationsCtxChat = buildIntegrationsContext();
+  const integrationsCtxChat = buildIntegrationsContext() + buildAgentWebhooksContext(agent);
   let systemLines;
-  if (agent.protected && getCOOContextPrompt) {
+  if (agent.role === 'ceo' && getCEOContextPrompt) {
+    systemLines = agent.prompt + skillsCtxChat + integrationsCtxChat + getCEOContextPrompt(agent.board_id) +
+      '\nYou are in a direct chat with the user. Speak like a CEO — concise, direct, decisive.';
+  } else if (agent.protected && getCOOContextPrompt) {
     systemLines = agent.prompt + skillsCtxChat + integrationsCtxChat + getCOOContextPrompt(agent.board_id) +
       '\nYou are in a direct chat. Be decisive and action-oriented. Use your Bash tools to take real actions when asked.';
   } else {
@@ -335,7 +412,9 @@ function sendChatMessage(agentId, userText) {
   promptText += `Human: ${userText}\n\nAssistant:`;
 
   const workdir = agent.workdir || process.env.HOME || '/tmp';
-  const proc = spawn(CLAUDE_BIN, claudeArgs(agent.model, promptText), {
+  const mcpConfigPath = buildMcpConfigFile(agent);
+  if (mcpConfigPath) console.log(`[runner] MCP config for chat ${agent.name}: ${mcpConfigPath}`);
+  const proc = spawn(CLAUDE_BIN, claudeArgs(agent.model, promptText, mcpConfigPath), {
     cwd: workdir,
     env: { ...process.env, FORCE_COLOR: '0', NO_COLOR: '1' },
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -357,6 +436,7 @@ function sendChatMessage(agentId, userText) {
 
   proc.on('close', () => {
     activeChats.delete(agentId);
+    cleanupMcpConfig(mcpConfigPath);
     const final = replyBuf.trim() || '(no response)';
     db.updateLastChatMessage(agentId, { content: final, streaming: false });
     emit('chat:done', { agentId, messageId: assistantId, content: final });
@@ -365,6 +445,7 @@ function sendChatMessage(agentId, userText) {
 
   proc.on('error', err => {
     activeChats.delete(agentId);
+    cleanupMcpConfig(mcpConfigPath);
     const errMsg = `Error starting claude: ${err.message}`;
     db.updateLastChatMessage(agentId, { content: errMsg, streaming: false });
     emit('chat:done', { agentId, messageId: assistantId, content: errMsg });
@@ -396,6 +477,6 @@ function notifyAgent(agent, status, summary, runId) {
 module.exports = {
   startRun, stopRun, getActiveRuns,
   sendChatMessage, stopChat, isChatting,
-  setBroadcast, registerNotifier, onChatDone, setCOOHelpers,
+  setBroadcast, registerNotifier, onChatDone, setCOOHelpers, setCEOHelpers,
   CLAUDE_BIN,
 };

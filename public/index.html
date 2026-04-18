@@ -178,9 +178,24 @@
     <section id="view-office" class="view">
       <div class="view-header">
         <h1>🏢 Office</h1>
-        <p class="view-subtitle">See what your agents are up to right now. Click any desk to chat with that agent.</p>
+        <p class="view-subtitle">Your AI company, visualized. Click any desk to chat with that agent.</p>
       </div>
-      <div class="office-grid" id="office-floor"></div>
+      <div class="office-building" id="office-building">
+        <div class="office-floor office-floor-exec">
+          <div class="office-room office-room-ceo">
+            <div class="office-room-label">CEO Office</div>
+            <div class="office-room-inner" id="office-ceo"></div>
+          </div>
+          <div class="office-room office-room-coo">
+            <div class="office-room-label">COO Office</div>
+            <div class="office-room-inner" id="office-coo"></div>
+          </div>
+        </div>
+        <div class="office-floor office-floor-workers">
+          <div class="office-room-label office-room-label-wide">Cubicles</div>
+          <div class="office-grid" id="office-floor"></div>
+        </div>
+      </div>
     </section>
 
     <!-- ACTIVITY (formerly Runs) -->
@@ -645,9 +660,15 @@
       <button class="modal-close" onclick="closeAgentModal()">×</button>
     </div>
     <form id="agent-form" onsubmit="saveAgent(event)">
-      <div class="form-group">
-        <label>Agent name <span class="req">*</span></label>
-        <input id="f-name" type="text" placeholder="e.g. Email Writer, Code Reviewer, Research Assistant" required />
+      <div class="form-row" style="grid-template-columns: 80px 1fr">
+        <div class="form-group">
+          <label>Emoji</label>
+          <input id="f-emoji" type="text" maxlength="16" placeholder="🤖" style="text-align:center;font-size:22px;padding:6px" />
+        </div>
+        <div class="form-group">
+          <label>Agent name <span class="req">*</span></label>
+          <input id="f-name" type="text" placeholder="e.g. Email Writer, Code Reviewer, Research Assistant" required />
+        </div>
       </div>
       <div class="form-group">
         <label>What does this agent do? <span class="req">*</span></label>
@@ -686,6 +707,26 @@
         <div class="form-group">
           <label>Tags</label>
           <input id="f-tags" type="text" placeholder="code, backend, nodejs" />
+        </div>
+
+        <div class="form-group" style="border-top:1px solid var(--border,#2a2a2a);padding-top:16px;margin-top:16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <label style="margin:0">MCP servers</label>
+            <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:normal">
+              <input id="f-mcp-enabled" type="checkbox" />
+              <span>Enable MCP for this agent</span>
+            </label>
+          </div>
+          <p style="margin:0 0 8px;font-size:12px;opacity:0.7">Per-agent MCP servers. Passed to Claude CLI via <code>--mcp-config</code> when enabled.</p>
+          <div id="mcp-servers-list"></div>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="addMcpServerRow()">+ Add MCP server</button>
+        </div>
+
+        <div class="form-group" style="border-top:1px solid var(--border,#2a2a2a);padding-top:16px;margin-top:16px">
+          <label style="margin-bottom:4px">Webhooks &amp; API endpoints</label>
+          <p style="margin:0 0 8px;font-size:12px;opacity:0.7">Custom HTTP endpoints this agent can pull data from (e.g. Shopify stock, Stripe balance). Injected into the agent's context as curl-able references.</p>
+          <div id="webhooks-list"></div>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="addWebhookRow()">+ Add webhook</button>
         </div>
       </div>
       <div class="modal-actions">
