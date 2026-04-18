@@ -393,7 +393,11 @@ function agentCard(a) {
   const agentSkills = (a.skill_ids || []).map(sid => allSkills.find(s => s.id === sid)).filter(Boolean);
   const skillChips  = agentSkills.map(s => `<span class="skill-chip">📄 ${esc(s.name)}</span>`).join('');
 
-  const actions = isCOO
+  const actions = isCEO
+    ? `<button class="btn btn-primary btn-sm" onclick="openChat('${a.id}')">Chat with CEO</button>
+       <button class="btn btn-ghost btn-sm" onclick="openRunModal('${a.id}','${esc(a.name)}')">Run</button>
+       <button class="btn btn-ghost btn-sm" onclick="viewAgentRuns('${a.id}')">Runs</button>`
+    : isCOO
     ? `<button class="btn btn-primary btn-sm" onclick="openChat('${a.id}')">Chat with COO</button>
        <button class="btn btn-ghost btn-sm" onclick="openRunModal('${a.id}','${esc(a.name)}')">Run</button>
        <button class="btn btn-ghost btn-sm" onclick="viewAgentRuns('${a.id}')">Runs</button>`
